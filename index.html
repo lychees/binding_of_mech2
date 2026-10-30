@@ -1,0 +1,260 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0b1215">
+  <title>断钢：撤离协议</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <canvas id="game" aria-label="断钢游戏画面"></canvas>
+  <div class="scanlines" aria-hidden="true"></div>
+  <div id="damage-vignette" aria-hidden="true"></div>
+
+  <header id="topbar">
+    <div class="brand"><span class="brand-mark">//</span><strong>断钢</strong><span>撤离协议</span><small>IRON EXTRACTION</small></div>
+    <nav id="workspace-nav" class="workspace-nav">
+      <button id="nav-hangar" class="active">格纳库</button>
+      <button id="nav-inventory">人物 / 背包</button>
+      <button id="nav-editor">创作工坊</button>
+    </nav>
+    <div class="top-stats">
+      <div class="network"><i id="net-dot"></i><span id="net-label">正在接入格纳库</span></div>
+      <div class="credit"><span>信用点</span><strong id="credits">0</strong></div>
+      <button id="help-button" class="icon-button" title="操作说明 (H)">?</button>
+    </div>
+  </header>
+
+  <section id="inventory-screen" class="screen workspace hidden">
+    <div class="workspace-heading">
+      <div><div class="eyebrow">驾驶员与装备 / LOADOUT</div><h2>人物 / 背包</h2></div>
+      <div class="segmented"><button class="active" data-inventory-tab="infantry">单兵装备</button><button data-inventory-tab="mech">机甲装备</button></div>
+      <div class="capacity"><span>格纳库储物容量</span><b id="inventory-capacity">0 / 36</b></div>
+    </div>
+    <div class="inventory-layout">
+      <aside class="workspace-panel character-panel">
+        <div id="character-portrait" class="character-portrait"></div>
+        <div class="character-level"><span>驾驶员等级</span><b id="character-level">1</b><small id="character-xp">0 / 500 XP</small><div><i id="character-xp-fill"></i></div></div>
+        <div id="equipment-slots" class="equipment-slots"></div>
+        <div class="section-title"><span>综合战斗属性</span></div>
+        <div id="paperdoll-stats" class="paperdoll-stats"></div>
+      </aside>
+      <section class="workspace-panel backpack-panel">
+        <div class="panel-heading"><div><span>随身储物</span><small>点击物品查看详情，装备会自动替换旧件</small></div><div><button id="inventory-sort">整理</button><button id="inventory-sell-common">出售普通</button></div></div>
+        <div id="inventory-grid" class="inventory-grid"></div>
+        <div class="inventory-legend"><span><i class="rarity-common"></i>普通</span><span><i class="rarity-magic"></i>魔法</span><span><i class="rarity-rare"></i>稀有</span><span><i class="rarity-epic"></i>史诗</span><span><i class="rarity-legendary"></i>传说</span></div>
+      </section>
+      <aside class="workspace-panel detail-panel">
+        <div id="item-detail" class="item-detail"><div class="empty-detail">选择一件装备<br><small>查看词缀、装备或出售</small></div></div>
+        <div class="attributes-block">
+          <div class="section-title"><span>人物属性</span><b id="attribute-points">0 点可用</b></div>
+          <div id="character-attributes"></div>
+        </div>
+      </aside>
+    </div>
+  </section>
+
+  <section id="editor-screen" class="screen workspace hidden">
+    <div class="workspace-heading editor-heading">
+      <div><div class="eyebrow">创作工坊 / FORGE</div><h2>编辑器</h2></div>
+      <div class="segmented"><button class="active" data-editor-tab="level">关卡</button><button data-editor-tab="mech">机甲</button><button data-editor-tab="item">装备 / 物品</button><button data-editor-tab="unit">单位</button></div>
+      <span class="editor-save-note">所有内容保存在本机，可直接投入实战</span>
+    </div>
+
+    <div id="editor-level" class="editor-page level-layout">
+      <aside class="workspace-panel level-tools">
+        <label class="field"><span>关卡名称</span><input id="level-name" maxlength="24" value="未命名区域"></label>
+        <div class="section-title"><span>绘制工具</span><small>点击地图放置</small></div>
+        <div id="level-palette" class="level-palette">
+          <button class="active" data-level-tool="building">建筑</button><button data-level-tool="obstacle">障碍物</button>
+          <button data-level-tool="crate">物资箱</button><button data-level-tool="raider">掠夺者</button>
+          <button data-level-tool="drone">无人机</button><button data-level-tool="spawn">出生点</button>
+          <button data-level-tool="extraction">撤离点</button><button data-level-tool="erase">删除</button>
+        </div>
+        <div class="editor-action-grid"><button id="level-undo">撤销</button><button id="level-new">新建</button><button id="level-save">保存关卡</button><button id="level-test" class="primary">测试出击</button></div>
+        <div class="editor-action-grid"><button id="level-export">导出 JSON</button><button id="level-import">导入 JSON</button></div>
+        <input id="level-file" type="file" accept="application/json" class="hidden">
+        <p class="editor-help">建筑会自动生成墙体、房门与内部隔间。物资和敌人放在建筑范围内时，会标记为室内内容。</p>
+        <div class="section-title"><span>我的关卡</span><b id="level-count">0</b></div>
+        <div id="level-list" class="saved-list"></div>
+      </aside>
+      <div class="level-canvas-wrap"><canvas id="level-canvas" width="960" height="665"></canvas><div class="level-status"><span id="level-tool-label">当前：建筑</span><span>2600 × 1800 · 网格 40</span></div></div>
+    </div>
+
+    <div id="editor-mech" class="editor-page hidden mech-editor-layout">
+      <div class="mech-preview-wrap"><canvas id="mech-editor-canvas" width="560" height="570"></canvas><div><span>实时结构预览</span><b id="mech-preview-name">MX-04「灰犀」</b></div></div>
+      <aside class="workspace-panel mech-config">
+        <label class="field"><span>机体代号</span><input id="mech-editor-name" maxlength="16" value="灰犀"></label>
+        <div class="section-title"><span>底盘结构</span></div><div id="chassis-options" class="chassis-options"></div>
+        <div class="section-title"><span>装甲涂装</span></div><div id="paint-options" class="paint-options"></div>
+        <label class="field"><span>自定义涂装</span><input id="mech-paint" type="color" value="#698a82"></label>
+        <div id="mech-editor-stats" class="paperdoll-stats"></div>
+        <div id="mech-system-warning" class="mech-system-warning"></div>
+        <div class="section-title"><span>部件护甲 / 耐久</span><small>战斗中可分别损毁</small></div>
+        <div id="mech-part-list" class="mech-part-list"></div>
+        <button id="mech-save" class="wide-primary">保存机体配置</button>
+        <p class="editor-help">武器、装备与改装都会占用出力和负重。超载或供电不足会降低速度、转向与散热。</p>
+      </aside>
+    </div>
+
+    <div id="editor-item" class="editor-page hidden item-editor-layout">
+      <aside class="workspace-panel item-form-panel">
+        <div class="panel-heading"><span>装备 / 物品定义</span><button id="item-new">新建</button></div>
+        <input id="item-edit-id" type="hidden">
+        <label class="field"><span>名称</span><input id="item-name" maxlength="28" value="自定义装备"></label>
+        <div class="field-row"><label class="field"><span>装备槽</span><select id="item-slot"></select></label><label class="field"><span>品质</span><select id="item-rarity"></select></label></div>
+        <div class="field-row"><label class="field"><span>出售价值</span><input id="item-price" type="number" min="1" max="999999" value="500"></label><label class="field"><span>显示颜色</span><input id="item-color" type="color" value="#e7ca68"></label></div>
+        <div class="section-title"><span>装备词缀</span><small>百分比使用小数，如 0.1 = 10%</small></div>
+        <div id="item-affix-editor"></div>
+        <button id="item-save" class="wide-primary">保存并放入背包</button>
+        <p class="editor-help">保存会登记到自定义物品库，并生成一件实际背包物品。</p>
+      </aside>
+      <section class="workspace-panel"><div class="panel-heading"><div><span>自定义物品库</span><small>可再次编辑或复制到背包</small></div></div><div id="custom-item-list" class="saved-list detailed"></div></section>
+    </div>
+
+    <div id="editor-unit" class="editor-page hidden unit-editor-layout">
+      <aside class="workspace-panel unit-form-panel">
+        <div class="panel-heading"><span>单位参数</span><button id="unit-new">新建</button></div>
+        <input id="unit-edit-id" type="hidden">
+        <label class="field"><span>单位名称</span><input id="unit-name" maxlength="20" value="自定义敌人"></label>
+        <div class="field-row"><label class="field"><span>行为模型</span><select id="unit-model"><option value="raider">地面步兵</option><option value="drone">悬浮无人机</option></select></label><label class="field"><span>涂装</span><input id="unit-color" type="color" value="#b56958"></label></div>
+        <div class="unit-fields">
+          <label class="field"><span>耐久</span><input id="unit-hp" type="number" min="1" max="100000" value="150"></label>
+          <label class="field"><span>移速</span><input id="unit-speed" type="number" min="0" max="600" value="120"></label>
+          <label class="field"><span>伤害</span><input id="unit-damage" type="number" min="0" max="10000" value="12"></label>
+          <label class="field"><span>射程</span><input id="unit-range" type="number" min="50" max="1500" value="400"></label>
+          <label class="field"><span>射击间隔</span><input id="unit-rate" type="number" min="0.05" max="10" step="0.05" value="0.65"></label>
+          <label class="field"><span>模型比例</span><input id="unit-scale" type="number" min="0.5" max="3" step="0.1" value="1"></label>
+        </div>
+        <button id="unit-save" class="wide-primary">保存单位</button>
+        <p class="editor-help">保存后，该单位会出现在关卡编辑器的绘制工具中。</p>
+      </aside>
+      <div class="unit-preview-wrap"><canvas id="unit-editor-canvas" width="360" height="300"></canvas></div>
+      <section class="workspace-panel"><div class="panel-heading"><span>单位库</span><small>内置单位可复制后修改</small></div><div id="unit-list" class="saved-list detailed"></div></section>
+    </div>
+  </section>
+
+  <main id="hangar" class="screen">
+    <aside class="panel left-panel">
+      <div class="eyebrow">行动简报 / OPERATION</div>
+      <h2 id="region-name">灰烬工业区</h2>
+      <p class="muted">深入封锁区，搜索高价值物资。活着抵达撤离点，战利品才算你的。</p>
+      <div class="seed-row">
+        <label for="seed-input">地图序列</label>
+        <input id="seed-input" maxlength="24" spellcheck="false" aria-label="地图种子">
+        <button id="reroll-button" title="重新生成地图">↻</button>
+      </div>
+      <div class="map-preview" id="map-preview"><span>程序生成区域</span><b>06</b><small>设施信号</small></div>
+      <div class="section-title"><span>联机格纳库</span><b id="player-count">1/8</b></div>
+      <div id="player-list" class="player-list"></div>
+      <div id="chat-log" class="chat-log"><p><span>系统</span> 同一局域网的驾驶员可加入整备。</p></div>
+      <form id="chat-form" class="chat-form">
+        <input id="chat-input" maxlength="120" placeholder="发送战术消息…" autocomplete="off">
+        <button type="submit">发送</button>
+      </form>
+    </aside>
+
+    <section class="hangar-center">
+      <div class="bay-label"><span>BAY 07</span><i></i><b id="hangar-mode-label">MX-04 突袭型</b></div>
+      <div id="mech-nameplate" class="mech-nameplate">
+        <span id="callsign-label">驾驶员</span>
+        <strong id="mech-title">MX-04「灰犀」</strong>
+        <small id="mech-subtitle">多用途步行作战平台</small>
+      </div>
+      <div class="hangar-tip">在格纳库点击右侧项目实时整备 · 改装会影响实战数值</div>
+    </section>
+
+    <aside class="panel right-panel">
+      <div class="loadout-tabs" role="tablist">
+        <button class="active" data-tab="mech" role="tab">机甲装备</button>
+        <button data-tab="infantry" role="tab">单兵装备</button>
+      </div>
+      <div class="unit-stats" id="unit-stats"></div>
+      <div class="section-title"><span>武器挂点</span><small>点击切换待配置槽位</small></div>
+      <div id="weapon-slots" class="weapon-slots"></div>
+      <div id="weapon-options" class="option-list"></div>
+      <div class="section-title mod-title"><span>改装项目</span><small>最多安装 2 项</small></div>
+      <div id="mod-options" class="mod-list"></div>
+    </aside>
+
+    <footer class="hangar-footer">
+      <div class="record">
+        <span>出击 <b id="raid-count">0</b></span>
+        <span>成功撤离 <b id="success-count">0</b></span>
+        <span>最高带回 <b id="best-run">0</b></span>
+      </div>
+      <div class="deploy-copy"><b id="deploy-map-name">灰烬工业区</b><span>预计威胁：中等 · 单人/局域网协同</span></div>
+      <button id="deploy-button" class="deploy-button"><span>开始行动</span><small>DEPLOY →</small></button>
+    </footer>
+  </main>
+
+  <section id="mission-hud" class="screen hidden">
+    <div class="mission-top-left">
+      <div class="mission-tag"><span id="mission-seed">SEED</span><b id="mission-region">区域</b></div>
+      <div class="health-row"><span id="form-label">机甲</span><div class="bar"><i id="health-fill"></i></div><b id="health-label">340</b></div>
+      <div id="heat-row" class="health-row heat"><span>热量</span><div class="bar"><i id="heat-fill"></i></div><b id="heat-label">0%</b></div>
+      <div id="systems-status" class="systems-status"></div>
+      <div id="part-status" class="part-status"></div>
+    </div>
+    <div class="objective-box">
+      <span id="objective-kicker">当前目标</span>
+      <strong id="objective-text">搜索物资并抵达撤离点</strong>
+      <div id="objective-sub">跟随绿色信标 · 建筑内需离机进入</div>
+    </div>
+    <div class="mission-clock"><span>封锁倒计时</span><b id="mission-time">05:00</b></div>
+    <div class="minimap-frame"><canvas id="minimap" width="210" height="150"></canvas><span>战术扫描 / N</span></div>
+    <div id="kill-feed" class="kill-feed"></div>
+    <div class="weapon-hud">
+      <div class="weapon-index" id="weapon-index">01</div>
+      <div><span id="weapon-kind">主武器</span><strong id="weapon-name">狂风·机炮</strong><small id="reload-label">R 装填 · 1/2 切换</small></div>
+      <b id="ammo-label">36</b>
+    </div>
+    <div class="loot-hud"><span>携带物资</span><strong id="carry-value">0</strong><small id="carry-items">背包 0/12 · 装备 0</small></div>
+    <div id="dash-hud" class="dash-hud">SPACE <span>冲刺就绪</span></div>
+    <div id="interact-prompt" class="interact-prompt hidden"><strong></strong><span></span><div><i></i></div></div>
+    <div class="controls-strip">WASD 移动　鼠标 瞄准/射击　E 互动/登机　F 离机　R 装填　SPACE 冲刺　H 帮助</div>
+  </section>
+
+  <div id="debrief" class="modal hidden" role="dialog" aria-modal="true">
+    <div class="debrief-card">
+      <div class="eyebrow">行动结算 / AFTER ACTION</div>
+      <h1 id="debrief-title">撤离成功</h1>
+      <p id="debrief-reason">物资已安全送回格纳库</p>
+      <div id="debrief-stats" class="debrief-stats"></div>
+      <div id="debrief-loot" class="debrief-loot"></div>
+      <button id="return-button" class="deploy-button">返回格纳库 <span>→</span></button>
+    </div>
+  </div>
+
+  <div id="help-modal" class="modal hidden" role="dialog" aria-modal="true">
+    <div class="help-card">
+      <button id="close-help" class="modal-close">×</button>
+      <div class="eyebrow">驾驶员手册 / FIELD MANUAL</div>
+      <h2>进去，搜刮，活着回来。</h2>
+      <div class="help-grid">
+        <div><b>WASD</b><span>移动</span></div><div><b>鼠标左键</b><span>瞄准射击</span></div>
+        <div><b>1 / 2</b><span>切换武器</span></div><div><b>R</b><span>手动装填</span></div>
+        <div><b>F</b><span>离开机甲</span></div><div><b>E</b><span>搜索 / 登上机甲</span></div>
+        <div><b>SPACE</b><span>短距冲刺</span></div><div><b>H</b><span>打开 / 关闭帮助</span></div>
+      </div>
+      <p>机甲火力与防护更强，但无法进入建筑。离机后可穿过门洞、搜索室内容器；机甲会留在原地。机甲损毁时会紧急弹射，单兵阵亡或倒计时结束则丢失本次物资。</p>
+      <p>绿色区域为撤离点，在区域内停留 3 秒完成撤离。右上角小地图显示建筑、敌人和撤离信标。</p>
+      <p>容器和敌人会掉落五档品质的随机装备。成功撤离后，可在顶部“人物 / 背包”中装备词缀物品并分配属性点；“创作工坊”可编辑关卡、机体、物品和敌人。</p>
+      <p class="network-note">局域网联机：所有玩家启动同一个 <code>server.rb</code> 地址即可看到彼此并共同进入同种子地图。此原型同步位置与战斗特效，敌人由各自客户端模拟。</p>
+    </div>
+  </div>
+
+  <div id="toast-container" aria-live="polite"></div>
+  <script src="js/data.js"></script>
+  <script src="js/items.js"></script>
+  <script src="js/core.js"></script>
+  <script src="js/assets.js"></script>
+  <script src="js/legacy-models.js"></script>
+  <script src="js/render.js"></script>
+  <script src="js/mission.js"></script>
+  <script src="js/inventory.js"></script>
+  <script src="js/editors.js"></script>
+  <script src="js/game.js"></script>
+</body>
+</html>

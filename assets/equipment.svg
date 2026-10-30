@@ -1,0 +1,58 @@
+<svg xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <symbol id="infHelmet" viewBox="0 0 64 64">
+      <path d="M15 36V25C15 12 24 6 32 6s17 6 17 19v11l-6 12H21z" fill="currentColor" opacity=".25"/>
+      <path d="M15 36V25C15 12 24 6 32 6s17 6 17 19v11l-6 12H21zM17 27h30M23 29h18v10H23zM25 48v6h14v-6" fill="none" stroke="currentColor" stroke-width="2.5"/>
+      <path d="M26 33h12" stroke="#9ff1d9" stroke-width="3"/><path d="M12 30h5M47 30h5" stroke="currentColor" stroke-width="3"/>
+    </symbol>
+    <symbol id="infArmor" viewBox="0 0 64 64">
+      <path d="M20 10l12 6 12-6 9 11-6 8v27H17V29l-6-8z" fill="currentColor" opacity=".25"/>
+      <path d="M20 10l12 6 12-6 9 11-6 8v27H17V29l-6-8zM24 23h16l4 26H20zM32 16v12M24 34h16M28 42h8" fill="none" stroke="currentColor" stroke-width="2.5"/>
+      <path d="M26 27h12" stroke="#9ff1d9" stroke-width="2.5"/>
+    </symbol>
+    <symbol id="infGloves" viewBox="0 0 64 64">
+      <path d="M15 50V27c0-4 5-4 5 0V13c0-5 5-5 5 0v12V8c0-5 5-5 5 0v17V10c0-5 5-5 5 0v17V15c0-5 5-5 5 0v19l7-6c4-3 8 1 5 5L36 54H20z" fill="currentColor" opacity=".28"/>
+      <path d="M15 50V27c0-4 5-4 5 0V13c0-5 5-5 5 0v12V8c0-5 5-5 5 0v17V10c0-5 5-5 5 0v17V15c0-5 5-5 5 0v19l7-6c4-3 8 1 5 5L36 54H20zM19 47h19M23 53v5h12v-5" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"/>
+    </symbol>
+    <symbol id="infBoots" viewBox="0 0 64 64">
+      <path d="M11 8h16l-2 28 10 8H11zm26 0h16l-2 28 10 8H37z" fill="currentColor" opacity=".25"/>
+      <path d="M11 8h16l-2 28 10 8v12H7V45zm26 0h16l-2 28 10 8v12H33V45zM12 36h13M38 36h13M10 49h22M36 49h22" fill="none" stroke="currentColor" stroke-width="2.5"/>
+      <path d="M13 15h11M39 15h11" stroke="#9ff1d9" stroke-width="2"/>
+    </symbol>
+    <symbol id="infCharm" viewBox="0 0 64 64">
+      <path d="M32 5l23 13v28L32 59 9 46V18z" fill="currentColor" opacity=".18"/>
+      <path d="M32 5l23 13v28L32 59 9 46V18zM32 15l14 8v18l-14 8-14-8V23z" fill="none" stroke="currentColor" stroke-width="2.5"/>
+      <circle cx="32" cy="32" r="8" fill="currentColor" opacity=".45"/><path d="M32 23v18M23 32h18" stroke="#9ff1d9" stroke-width="2"/>
+    </symbol>
+    <symbol id="mechHead" viewBox="0 0 64 64">
+      <path d="M10 20l10-9h24l10 9 4 26-12 11H18L6 46z" fill="currentColor" opacity=".28"/>
+      <path d="M10 20l10-9h24l10 9 4 26-12 11H18L6 46zM15 24h34l-3 14H18zM24 49h16M20 11V5M44 11V5" fill="none" stroke="currentColor" stroke-width="2.5"/>
+      <path d="M21 29h22" stroke="#9ff1d9" stroke-width="4"/><path d="M9 41h8M47 41h8" stroke="currentColor" stroke-width="3"/>
+    </symbol>
+    <symbol id="mechTorso" viewBox="0 0 64 64">
+      <path d="M13 10h38l8 18-8 29H13L5 28z" fill="currentColor" opacity=".25"/>
+      <path d="M13 10h38l8 18-8 29H13L5 28zM20 17h24l5 14-7 19H22l-7-19zM25 23h14v17H25zM13 10L8 3M51 10l5-7" fill="none" stroke="currentColor" stroke-width="2.5"/>
+      <path d="M27 28h10M32 23v17" stroke="#9ff1d9" stroke-width="2"/>
+    </symbol>
+    <symbol id="mechArms" viewBox="0 0 64 64">
+      <path d="M7 12h18v15l-5 7 5 22H9L3 34zm50 0H39v15l5 7-5 22h16l6-22z" fill="currentColor" opacity=".25"/>
+      <path d="M7 12h18v15l-5 7 5 22H9L3 34zm50 0H39v15l5 7-5 22h16l6-22zM8 36h13M43 36h13M11 45h12M41 45h12" fill="none" stroke="currentColor" stroke-width="2.5"/>
+      <path d="M12 17h8M44 17h8" stroke="#9ff1d9" stroke-width="3"/>
+    </symbol>
+    <symbol id="mechLegs" viewBox="0 0 64 64">
+      <path d="M11 5h18l-3 26-5 13 3 14H5l5-23zm42 0H35l3 26 5 13-3 14h19l-5-23z" fill="currentColor" opacity=".25"/>
+      <path d="M11 5h18l-3 26-5 13 3 14H5l5-23zm42 0H35l3 26 5 13-3 14h19l-5-23zM11 31h14M39 31h14M8 48h14M42 48h14" fill="none" stroke="currentColor" stroke-width="2.5"/>
+      <path d="M13 11h11M40 11h11" stroke="#9ff1d9" stroke-width="3"/>
+    </symbol>
+    <symbol id="mechReactor" viewBox="0 0 64 64">
+      <circle cx="32" cy="32" r="26" fill="currentColor" opacity=".18"/>
+      <circle cx="32" cy="32" r="26" fill="none" stroke="currentColor" stroke-width="2.5"/><circle cx="32" cy="32" r="17" fill="none" stroke="currentColor" stroke-width="3"/>
+      <circle cx="32" cy="32" r="8" fill="#9ff1d9" opacity=".7"/><path d="M32 2v9M32 53v9M2 32h9M53 32h9M11 11l7 7M46 46l7 7M53 11l-7 7M18 46l-7 7" stroke="currentColor" stroke-width="3"/>
+    </symbol>
+    <symbol id="mechArmor" viewBox="0 0 64 64">
+      <path d="M32 5l23 9v19c0 14-10 22-23 27C19 55 9 47 9 33V14z" fill="currentColor" opacity=".25"/>
+      <path d="M32 5l23 9v19c0 14-10 22-23 27C19 55 9 47 9 33V14zM32 14l14 6v13c0 9-6 14-14 18-8-4-14-9-14-18V20z" fill="none" stroke="currentColor" stroke-width="2.5"/>
+      <path d="M32 15v34M20 27h24" stroke="#9ff1d9" stroke-width="2.5"/>
+    </symbol>
+  </defs>
+</svg>

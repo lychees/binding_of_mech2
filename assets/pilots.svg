@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <symbol id="pilot-0" viewBox="0 0 96 96">
+      <rect width="96" height="96" rx="8" fill="#102326"/><path d="M0 74L96 30v66H0z" fill="#173237"/>
+      <path d="M18 96l7-25 20-9h12l20 9 7 25z" fill="#49665f"/><path d="M35 57h26v19H35z" fill="#263c3a"/>
+      <path d="M25 24l12-13h24l12 13 3 27-13 16H34L21 51z" fill="#66877a" stroke="#9db2a5" stroke-width="2"/>
+      <path d="M29 30h39l-4 19H33z" fill="#102729"/><path d="M35 36h27" stroke="#8fe6d2" stroke-width="5"/>
+      <path d="M25 24l14 4 21-17M22 51h12M64 51h12" stroke="#354e48" stroke-width="4"/><path d="M42 56h13" stroke="#d4b16c" stroke-width="3"/>
+      <path d="M28 77h15M56 77h15" stroke="#91b1a3" stroke-width="3"/><text x="9" y="17" fill="#82e6d8" font-family="monospace" font-size="9">R-01</text>
+    </symbol>
+    <symbol id="pilot-1" viewBox="0 0 96 96">
+      <rect width="96" height="96" rx="8" fill="#261d18"/><path d="M0 18L96 70v26H0z" fill="#352a20"/>
+      <path d="M15 96l10-27 20-8h14l18 8 7 27z" fill="#685c47"/><path d="M37 56h24v18H37z" fill="#3b352a"/>
+      <path d="M23 27l10-17 31-3 14 19-5 29-15 13H35L23 52z" fill="#887b5f" stroke="#b6a780" stroke-width="2"/>
+      <path d="M28 29h43v18H28z" fill="#211f1b"/><path d="M33 35h32" stroke="#efb76d" stroke-width="4"/>
+      <path d="M34 8l5 16M65 9l-8 16M24 52h13M62 52h12" stroke="#4c4638" stroke-width="4"/>
+      <path d="M48 57l8 5-7 4" fill="none" stroke="#d4b16c" stroke-width="2"/><path d="M26 76h20v7H26zM57 76h14v7H57z" fill="#3c4a42"/>
+      <text x="9" y="17" fill="#efb76d" font-family="monospace" font-size="9">V-07</text>
+    </symbol>
+    <symbol id="pilot-2" viewBox="0 0 96 96">
+      <rect width="96" height="96" rx="8" fill="#1b1c2b"/><path d="M0 60L96 16v80H0z" fill="#252a3d"/>
+      <path d="M16 96l9-25 20-10h15l18 10 5 25z" fill="#4e5f7a"/><path d="M36 57h25v17H36z" fill="#283143"/>
+      <path d="M26 21L40 8h21l13 16 1 29-14 15H34L22 50z" fill="#5d6f85" stroke="#98a9bd" stroke-width="2"/>
+      <path d="M28 29h43l-3 18H30z" fill="#111b29"/><path d="M34 35h30" stroke="#a5b8f3" stroke-width="4"/>
+      <path d="M40 8L29 29M61 8l9 20M24 50h12M62 50h12" stroke="#354356" stroke-width="4"/>
+      <path d="M28 74l15 8-15 8zM57 75h15v13H57z" fill="#8b9db7"/><path d="M43 55h12" stroke="#d88c79" stroke-width="2"/>
+      <text x="9" y="17" fill="#a5b8f3" font-family="monospace" font-size="9">N-12</text>
+    </symbol>
+    <symbol id="pilot-3" viewBox="0 0 96 96">
+      <rect width="96" height="96" rx="8" fill="#251a29"/><path d="M0 22L96 62v34H0z" fill="#342239"/>
+      <path d="M14 96l11-26 21-9h13l19 9 6 26z" fill="#685371"/><path d="M36 56h25v19H36z" fill="#3b2c43"/>
+      <path d="M24 25L38 9l25 3 12 17-3 26-14 13H35L22 51z" fill="#7a6680" stroke="#b59dbb" stroke-width="2"/>
+      <path d="M29 29h41l-2 19H30z" fill="#211827"/><path d="M35 36h27" stroke="#d99adf" stroke-width="4"/>
+      <path d="M38 9l-7 17M63 12l7 16M23 50h13M61 50h12" stroke="#4a3953" stroke-width="4"/>
+      <path d="M43 55l13 3-6 6" fill="none" stroke="#d4b16c" stroke-width="2"/><path d="M26 77h18M58 77h14" stroke="#b18cba" stroke-width="4"/>
+      <text x="9" y="17" fill="#d99adf" font-family="monospace" font-size="9">K-33</text>
+    </symbol>
+  </defs>
+</svg>
