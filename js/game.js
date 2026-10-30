@@ -69,6 +69,10 @@
     }
 
     connect() {
+      if (location.hostname.endsWith('.github.io')) {
+        this.app.setNetworkStatus('GitHub Pages · 单机模式', 'online');
+        return;
+      }
       if (!/^https?:$/.test(location.protocol) || typeof WebSocket === 'undefined') {
         this.app.setNetworkStatus('离线模式 · 请用 server.rb 启动联机', 'offline');
         return;
