@@ -344,21 +344,31 @@
       ctx.globalAlpha = 1;
 
       this.drawExtraction(map.extraction, time);
+      raid.debris.forEach(function (piece) {
+        ctx.globalAlpha = .5; ctx.fillStyle = piece.type === 'wall' ? '#29332f' : '#171f1d';
+        ctx.beginPath(); ctx.ellipse(piece.x, piece.y, Math.max(12, piece.w * .55), Math.max(6, piece.h * .45), 0, 0, TAU); ctx.fill();
+        ctx.globalAlpha = .75; ctx.fillStyle = piece.type === 'rock' ? '#615c4e' : '#4b5147';
+        for (let i = 0; i < 5; i += 1) ctx.fillRect(piece.x - 13 + i * 6, piece.y - 5 + (i % 2) * 7, 7, 5);
+      });
+      ctx.globalAlpha = 1;
       const inside = player.mode === 'infantry' ? root.MechCore.buildingAt(map, player.x, player.y) : null;
       map.buildings.forEach(function (building) { this.drawBuilding(building, inside && inside.id === building.id); }, this);
 
       map.obstacles.forEach(function (o) {
-        const spriteName = o.kind === 'scrap' ? 'scrap' : (o.w < 60 && o.h < 60 ? 'barrel' : 'barrier');
+        if (o.destroyed) return;
+        const spriteName = o.kind === 'rock' ? 'rock' : (o.kind === 'scrap' ? 'scrap' : (o.w < 60 && o.h < 60 ? 'barrel' : 'barrier'));
         if (root.MechAssets.ready(spriteName)) {
           ctx.drawImage(root.MechAssets.getImage(spriteName), o.x - 7, o.y - 7, o.w + 14, o.h + 14);
+          this.drawObjectDamage(o);
           return;
         }
         ctx.fillStyle = 'rgba(0,0,0,.25)'; ctx.fillRect(o.x + 7, o.y + 8, o.w, o.h);
-        ctx.fillStyle = o.kind === 'scrap' ? '#354442' : '#4b5148'; ctx.fillRect(o.x, o.y, o.w, o.h);
+        ctx.fillStyle = o.kind === 'rock' ? '#514e43' : (o.kind === 'scrap' ? '#354442' : '#4b5148'); ctx.fillRect(o.x, o.y, o.w, o.h);
         ctx.strokeStyle = '#657066'; ctx.strokeRect(o.x + 2, o.y + 2, o.w - 4, o.h - 4);
         ctx.fillStyle = '#b39255';
         if (o.kind === 'barrier') for (let x = o.x + 6; x < o.x + o.w - 6; x += 23) ctx.fillRect(x, o.y + 4, 9, 3);
-      });
+        this.drawObjectDamage(o);
+      }, this);
 
       map.crates.forEach(function (crate) {
         if (crate.indoors && (!inside || inside.id !== crate.building)) return;
@@ -407,8 +417,14 @@
       else this.drawInfantryUnit(player.x, player.y, player.angle, '#9fe3cb', 1, false);
 
       raid.bullets.forEach(function (bullet) {
+        const height = (bullet.z || 0) * .35;
         ctx.strokeStyle = bullet.color; ctx.lineWidth = bullet.owner === 'enemy' ? 2 : 2.5;
-        ctx.globalAlpha = .85; ctx.beginPath(); ctx.moveTo(bullet.x - bullet.vx * .018, bullet.y - bullet.vy * .018); ctx.lineTo(bullet.x, bullet.y); ctx.stroke();
+        ctx.globalAlpha = .85; ctx.beginPath(); ctx.moveTo(bullet.x - bullet.vx * .018, bullet.y - bullet.vy * .018 - height); ctx.lineTo(bullet.x, bullet.y - height); ctx.stroke();
+        if (bullet.lob) { ctx.globalAlpha = .25; ctx.fillStyle = '#050b0d'; ctx.beginPath(); ctx.ellipse(bullet.x, bullet.y, 6, 3, 0, 0, TAU); ctx.fill(); }
+      });
+      raid.lightning.forEach(function (arc) {
+        ctx.globalAlpha = Math.max(0, arc.life / arc.maxLife); ctx.strokeStyle = arc.color; ctx.lineWidth = 3;
+        ctx.beginPath(); ctx.moveTo(arc.x1, arc.y1); ctx.lineTo(arc.x2, arc.y2); ctx.stroke();
       });
       ctx.globalAlpha = 1;
       raid.particles.forEach(function (p) {
@@ -422,6 +438,18 @@
       this.drawMinimap(raid, remotes);
       if (player.flash > 0) {
         ctx.fillStyle = 'rgba(239,90,75,' + Math.min(.18, player.flash * .2) + ')'; ctx.fillRect(0, 0, w, h);
+      }
+    }
+
+    drawObjectDamage(object) {
+      if (object.hp === undefined || object.hp >= object.maxHp) return;
+      const ctx = this.ctx; const cx = object.x + object.w / 2; const cy = object.y + object.h / 2;
+      ctx.strokeStyle = '#1a211d'; ctx.lineWidth = 1.5;
+      ctx.beginPath(); ctx.moveTo(cx - 10, cy - 7); ctx.lineTo(cx - 2, cy); ctx.lineTo(cx - 8, cy + 9);
+      ctx.moveTo(cx - 2, cy); ctx.lineTo(cx + 10, cy - 6); ctx.moveTo(cx - 2, cy); ctx.lineTo(cx + 8, cy + 8); ctx.stroke();
+      if (object.hp < object.maxHp * .7) {
+        ctx.fillStyle = '#121a17'; ctx.fillRect(object.x, object.y - 7, object.w, 3);
+        ctx.fillStyle = '#d49a61'; ctx.fillRect(object.x, object.y - 7, object.w * Math.max(0, object.hp / object.maxHp), 3);
       }
     }
 
@@ -439,10 +467,12 @@
       for (let x = b.x + 28; x < b.x + b.w - 20; x += 65) ctx.fillRect(x, b.y + 23, 36, 12);
       ctx.globalAlpha = 1;
       b.walls.forEach(function (wall) {
+        if (wall.destroyed) return;
         ctx.fillStyle = '#0c1719'; ctx.fillRect(wall.x + 4, wall.y + 5, wall.w, wall.h);
         ctx.fillStyle = '#53635b'; ctx.fillRect(wall.x, wall.y, wall.w, wall.h);
         ctx.fillStyle = '#738075'; ctx.fillRect(wall.x, wall.y, wall.w, 3);
-      });
+        this.drawObjectDamage(wall);
+      }, this);
       ctx.fillStyle = reveal ? '#a4d8c5' : '#728b83'; ctx.font = '9px monospace'; ctx.fillText(b.label, b.x + 22, b.y + 51);
       if (reveal) {
         ctx.fillStyle = '#82e6d8'; ctx.font = '8px sans-serif'; ctx.fillText('内部信号已连接', b.x + 22, b.y + 66);

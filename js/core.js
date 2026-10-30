@@ -154,7 +154,7 @@
         x: 300 + rand() * (width - 600), y: 180 + rand() * (height - 360),
         w: horizontal ? 60 + rand() * 80 : 28 + rand() * 30,
         h: horizontal ? 28 + rand() * 30 : 60 + rand() * 80,
-        kind: rand() > 0.45 ? 'barrier' : 'scrap'
+        kind: rand() > 0.66 ? 'rock' : (rand() > 0.45 ? 'barrier' : 'scrap')
       };
       const nearRoad = Math.abs(obstacle.y + obstacle.h / 2 - 900) < 170;
       const nearSpawn = Math.hypot(obstacle.x - 150, obstacle.y - 900) < 240;
@@ -192,9 +192,9 @@
   }
 
   function collidersFor(map, canEnterBuildings) {
-    const colliders = map.obstacles.slice();
+    const colliders = map.obstacles.filter(function (obstacle) { return !obstacle.destroyed; });
     if (canEnterBuildings) {
-      colliders.push.apply(colliders, map.walls);
+      colliders.push.apply(colliders, map.walls.filter(function (wall) { return !wall.destroyed; }));
     } else {
       colliders.push.apply(colliders, map.buildings);
     }
@@ -224,7 +224,9 @@
   }
 
   function lineBlocked(map, x1, y1, x2, y2, outdoorsOnly) {
-    const colliders = outdoorsOnly ? map.obstacles.concat(map.buildings) : map.obstacles.concat(map.walls);
+    const activeObstacles = map.obstacles.filter(function (obstacle) { return !obstacle.destroyed; });
+    const activeWalls = map.walls.filter(function (wall) { return !wall.destroyed; });
+    const colliders = outdoorsOnly ? activeObstacles.concat(map.buildings) : activeObstacles.concat(activeWalls);
     for (let i = 0; i < colliders.length; i += 1) {
       if (segmentRect(x1, y1, x2, y2, colliders[i])) return true;
     }
@@ -297,7 +299,10 @@
     const equipped = profile.equipped || {};
     const weaponSystem = {
       autocannon: { power: 95, weight: 1.1 }, rockets: { power: 145, weight: 1.7 },
-      railgun: { power: 270, weight: 2.5 }, laser: { power: 225, weight: 1.5 }
+      railgun: { power: 270, weight: 2.5 }, laser: { power: 225, weight: 1.5 },
+      flak: { power: 130, weight: 1.3 }, plasma: { power: 280, weight: 2.2 },
+      arc: { power: 300, weight: 1.8 }, mortar: { power: 240, weight: 3.2 },
+      minigun: { power: 190, weight: 2 }, blade: { power: 80, weight: .7 }
     };
     const modSystem = {
       composite: { power: 0, weight: 1.4 }, actuator: { power: 55, weight: .4 },

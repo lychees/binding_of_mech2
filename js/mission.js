@@ -12,6 +12,18 @@
     constructor(app, seed, customMap) {
       this.app = app;
       this.map = customMap ? root.MechItems.normalizeMap(customMap) : Core.generateMap(seed);
+      this.map.obstacles.forEach(function (obstacle, index) {
+        const barrel = obstacle.kind === 'barrier' && obstacle.w < 60 && obstacle.h < 60;
+        const type = obstacle.kind === 'rock' ? 'rock' : (barrel ? 'barrel' : obstacle.kind);
+        const hp = { rock: 240, scrap: 120, barrier: 90, barrel: 45 }[type] || 100;
+        obstacle.id = 'terrain-' + index; obstacle.terrainType = type;
+        obstacle.maxHp = hp; obstacle.hp = hp; obstacle.destructible = true; obstacle.destroyed = false;
+      });
+      this.map.walls.forEach(function (wall, index) {
+        const hp = 120 + Math.round(Math.min(60, Math.sqrt(wall.w * wall.w + wall.h * wall.h) * .25));
+        wall.id = 'wall-' + index; wall.terrainType = 'wall';
+        wall.maxHp = hp; wall.hp = hp; wall.destructible = true; wall.destroyed = false;
+      });
       this.stats = Core.computeStats(app.profile);
       this.systems = Core.computeMechSystems(app.profile);
       this.stats.mechSpeed = this.systems.speed;
@@ -39,6 +51,10 @@
       });
       this.bullets = [];
       this.particles = [];
+      this.burstQueue = [];
+      this.lightning = [];
+      this.debris = [];
+      this.destroyedCount = 0;
       this.timeLeft = 300;
       this.elapsed = 0;
       this.extractProgress = 0;
@@ -58,6 +74,7 @@
       this.buildPartHud();
       this.app.feed('已进入 <b>' + String(this.map.name).replace(/[<>&]/g, '') + '</b>，撤离信标已标记');
       this.app.feed('按 <b>F</b> 离机，建筑内部只能徒步进入');
+      this.app.feed('爆炸可摧毁掩体和墙体，开辟单兵通道');
     }
 
     buildPartHud() {
@@ -137,6 +154,9 @@
       if (player.dashTime > 0) speed *= 3.4;
       Core.moveEntity(this.map, player, moveX * speed * dt, moveY * speed * dt, player.mode === 'mech' ? 34 : 9, player.mode === 'infantry');
 
+      this.burstQueue.forEach(function (shot) { shot.delay -= dt; });
+      this.burstQueue.filter(function (shot) { return shot.delay <= 0; }).forEach(function (shot) { this.spawnPlayerBullet(shot.weapon); }, this);
+      this.burstQueue = this.burstQueue.filter(function (shot) { return shot.delay > 0; });
       this.weapons.mech.concat(this.weapons.infantry).forEach(function (state) {
         state.cooldown = Math.max(0, state.cooldown - dt);
         if (state.reloadLeft > 0) {
@@ -199,9 +219,10 @@
       const weapon = state.weapon;
       if (state.cooldown > 0 || state.reloadLeft > 0 || (player.mode === 'mech' && player.overheated)) return;
       if (state.ammo <= 0) { this.reload(); return; }
-      state.ammo -= 1;
+      const burstCount = weapon.burst ? Math.min(weapon.burst, state.ammo) : 1;
+      state.ammo -= burstCount;
       state.cooldown = weapon.rate;
-      this.shots += 1;
+      this.shots += burstCount;
       if (player.mode === 'mech') {
         player.heat = Math.min(100, player.heat + weapon.heat * this.stats.heatGain * (player.parts.mechReactor.broken ? 1.4 : 1));
         if (player.heat >= 100) {
@@ -209,22 +230,34 @@
           this.app.feed('<b>警告：</b>武器过热，火控暂时锁定');
         }
       }
+      if (weapon.burst) {
+        for (let i = 0; i < burstCount; i += 1) this.burstQueue.push({ delay: i * (weapon.burstDelay || .075), weapon });
+      } else {
+        for (let i = 0; i < weapon.pellets; i += 1) this.spawnPlayerBullet(weapon);
+      }
+      if (state.ammo <= 0) this.reload();
+    }
+
+    spawnPlayerBullet(weapon) {
+      const player = this.player;
       const partSpread = player.mode === 'mech' && player.parts.mechHead.broken ? 1.65 : 1;
       const partDamage = player.mode === 'mech' && player.parts.mechArms.broken ? .7 : 1;
-      for (let i = 0; i < weapon.pellets; i += 1) {
-        const angle = player.angle + (Math.random() - .5) * weapon.spread * partSpread * 2;
-        const muzzle = player.mode === 'mech' ? 48 : 23;
-        const critical = Math.random() < this.stats.critChance;
-        this.bullets.push({
-          x: player.x + Math.cos(angle) * muzzle, y: player.y + Math.sin(angle) * muzzle,
-          vx: Math.cos(angle) * weapon.speed, vy: Math.sin(angle) * weapon.speed,
-          life: 1.25, owner: 'player', damage: weapon.damage * partDamage * (critical ? 1.5 + this.stats.critDamage : 1),
-          blast: weapon.blast ? weapon.blast * this.stats.blast : 0, color: critical ? '#fff2a8' : weapon.color, radius: critical ? 4 : 3, critical
-        });
-      }
+      const angle = player.angle + (Math.random() - .5) * weapon.spread * partSpread * 2;
+      const muzzle = player.mode === 'mech' ? 48 : 23;
+      const critical = Math.random() < this.stats.critChance + (weapon.critBonus || 0);
+      this.bullets.push({
+        x: player.x + Math.cos(angle) * muzzle, y: player.y + Math.sin(angle) * muzzle,
+        vx: Math.cos(angle) * weapon.speed, vy: Math.sin(angle) * weapon.speed,
+        life: (weapon.range || weapon.speed * 1.25) / weapon.speed, owner: 'player',
+        damage: weapon.damage * partDamage * (critical ? 1.5 + this.stats.critDamage : 1),
+        blast: weapon.blast ? weapon.blast * this.stats.blast : 0,
+        color: critical ? '#fff2a8' : weapon.color, radius: critical ? 4 : 3, critical,
+        chain: weapon.chain || 0, chainRange: weapon.chainRange || 0,
+        pierce: weapon.pierce || 0, hitIds: [], lob: !!weapon.lob,
+        z: weapon.lob ? 0 : undefined, vz: weapon.lob ? 260 : undefined, gravity: weapon.lob ? 520 : undefined
+      });
       this.burst(player.x + Math.cos(player.angle) * 35, player.y + Math.sin(player.angle) * 35, weapon.color, 3, 45);
       this.app.sendFx({ kind: 'shot', x: player.x, y: player.y, angle: player.angle, color: weapon.color, seed: this.map.seed });
-      if (state.ammo <= 0) this.reload();
     }
 
     dismount() {
@@ -358,19 +391,27 @@
         for (let step = 0; step < steps && !impacted; step += 1) {
           bullet.x += bullet.vx * dt / steps;
           bullet.y += bullet.vy * dt / steps;
-          if (Core.blocked(this.map, bullet.x, bullet.y, 2, true)) {
+          if (bullet.lob) {
+            bullet.z += bullet.vz * dt / steps;
+            bullet.vz -= bullet.gravity * dt / steps;
+            if (bullet.z <= 0 && bullet.vz < 0) {
+              impacted = true; this.impact(bullet, null); break;
+            }
+          } else if (Core.blocked(this.map, bullet.x, bullet.y, 2, true)) {
             impacted = true;
             this.impact(bullet, null);
             break;
           }
-          if (bullet.owner === 'player') {
+          if (!impacted && bullet.owner === 'player' && !bullet.lob) {
             for (let i = 0; i < this.enemies.length; i += 1) {
               const enemy = this.enemies[i];
-              if (!enemy.dead && Core.distance(bullet, enemy) < enemy.radius + bullet.radius) {
-                impacted = true; this.impact(bullet, enemy); break;
+              if (!enemy.dead && bullet.hitIds.indexOf(enemy.id) < 0 && Core.distance(bullet, enemy) < enemy.radius + bullet.radius) {
+                this.impact(bullet, enemy);
+                if (bullet.pierce > 0) { bullet.pierce -= 1; bullet.hitIds.push(enemy.id); continue; }
+                impacted = true; break;
               }
             }
-          } else if (Core.distance(bullet, this.player) < (this.player.mode === 'mech' ? 34 : 10)) {
+          } else if (!impacted && bullet.owner === 'enemy' && Core.distance(bullet, this.player) < (this.player.mode === 'mech' ? 34 : 10)) {
             impacted = true;
             this.damagePlayer(bullet.damage);
             this.burst(bullet.x, bullet.y, '#ef806d', 5, 70);
@@ -382,7 +423,9 @@
     }
 
     impact(bullet, directTarget) {
+      if (bullet.owner === 'player') this.damageTerrain(bullet);
       if (directTarget && !bullet.blast) this.damageEnemy(directTarget, bullet.damage);
+      if (directTarget && bullet.chain) this.chainLightning(directTarget, bullet);
       if (bullet.blast) {
         this.enemies.forEach(function (enemy) {
           if (enemy.dead) return;
@@ -392,6 +435,56 @@
         this.burst(bullet.x, bullet.y, '#ff9b66', 22, 180);
       } else {
         this.burst(bullet.x, bullet.y, bullet.color, 5, 80);
+      }
+    }
+
+    damageTerrain(bullet) {
+      const targets = this.map.obstacles.concat(this.map.walls);
+      targets.forEach(function (target) {
+        if (!target.destructible || target.destroyed) return;
+        if (bullet.blast) {
+          if (!Core.circleRect(bullet.x, bullet.y, bullet.blast, target)) return;
+          const center = { x: target.x + target.w / 2, y: target.y + target.h / 2 };
+          const falloff = 1 - Math.min(1, Core.distance(center, bullet) / bullet.blast) * .5;
+          this.hurtTerrain(target, bullet.damage * falloff);
+        } else if (Core.circleRect(bullet.x, bullet.y, bullet.radius + 3, target)) {
+          this.hurtTerrain(target, bullet.damage);
+        }
+      }, this);
+    }
+
+    hurtTerrain(target, amount) {
+      if (target.destroyed) return;
+      target.hp = Math.max(0, target.hp - amount);
+      if (target.hp > 0) return;
+      target.destroyed = true;
+      this.destroyedCount += 1;
+      const x = target.x + target.w / 2; const y = target.y + target.h / 2;
+      const salvage = { rock: 35, scrap: 25, barrier: 15, barrel: 30, wall: 8 }[target.terrainType] || 10;
+      this.salvage += salvage; this.carryValue += salvage;
+      this.debris.push({ x, y, w: target.w, h: target.h, type: target.terrainType });
+      this.burst(x, y, target.terrainType === 'rock' ? '#a69a80' : '#d58b61', target.terrainType === 'wall' ? 28 : 18, 155);
+      if (this.destroyedCount <= 3 || this.destroyedCount % 5 === 0) {
+        const names = { rock: '岩壁', scrap: '废墟', barrier: '路障', barrel: '油桶', wall: '建筑墙体' };
+        this.app.feed((names[target.terrainType] || '掩体') + '已摧毁，回收合金 <b>+' + salvage + '</b>');
+      }
+    }
+
+    chainLightning(origin, bullet) {
+      const hit = [origin.id];
+      let current = origin;
+      for (let jump = 0; jump < bullet.chain; jump += 1) {
+        let nearest = null; let nearestDistance = bullet.chainRange;
+        this.enemies.forEach(function (enemy) {
+          if (enemy.dead || hit.indexOf(enemy.id) >= 0) return;
+          const dist = Core.distance(current, enemy);
+          if (dist < nearestDistance) { nearest = enemy; nearestDistance = dist; }
+        });
+        if (!nearest) break;
+        this.lightning.push({ x1: current.x, y1: current.y, x2: nearest.x, y2: nearest.y, life: .18, maxLife: .18, color: bullet.color });
+        this.damageEnemy(nearest, bullet.damage * .6);
+        this.burst(nearest.x, nearest.y, bullet.color, 6, 80);
+        hit.push(nearest.id); current = nearest;
       }
     }
 
@@ -456,6 +549,8 @@
         p.life -= dt; p.x += p.vx * dt; p.y += p.vy * dt; p.vx *= .94; p.vy *= .94;
       });
       this.particles = this.particles.filter(function (p) { return p.life > 0; });
+      this.lightning.forEach(function (arc) { arc.life -= dt; });
+      this.lightning = this.lightning.filter(function (arc) { return arc.life > 0; });
     }
 
     updateHud() {

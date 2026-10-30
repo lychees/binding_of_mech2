@@ -117,6 +117,8 @@
         this.currentMap.buildings.push(root.MechCore.createBuilding(gx - 170, gy - 150, 340, 300, this.currentMap.buildings.length, root.MechCore.randomFrom(Date.now() + ':building')));
       } else if (tool === 'obstacle') {
         this.currentMap.obstacles.push({ x: gx - 45, y: gy - 25, w: 90, h: 50, kind: 'barrier' });
+      } else if (tool === 'rock') {
+        this.currentMap.obstacles.push({ x: gx - 60, y: gy - 35, w: 120, h: 70, kind: 'rock' });
       } else if (tool === 'crate') {
         this.currentMap.crates.push({ id: root.MechItems.newId('crate'), x: gx, y: gy, opened: false, progress: 0 });
       } else if (tool === 'spawn') {
@@ -159,7 +161,7 @@
         ctx.strokeStyle = '#73877e'; ctx.strokeRect(b.x * sx, b.y * sy, b.w * sx, b.h * sy);
         ctx.fillStyle = '#98aaa1'; ctx.font = '9px sans-serif'; ctx.fillText(b.label || '建筑', b.x * sx + 5, b.y * sy + 13);
       });
-      map.obstacles.forEach(function (o) { ctx.fillStyle = '#596158'; ctx.fillRect(o.x * sx, o.y * sy, o.w * sx, o.h * sy); });
+      map.obstacles.forEach(function (o) { ctx.fillStyle = o.kind === 'rock' ? '#77705b' : '#596158'; ctx.fillRect(o.x * sx, o.y * sy, o.w * sx, o.h * sy); });
       map.crates.forEach(function (crate) { ctx.fillStyle = '#e5bd68'; ctx.fillRect(crate.x * sx - 3, crate.y * sy - 3, 6, 6); });
       map.enemies.forEach(function (enemy) {
         const unit = root.MechItems.unitDefinition(enemy.type, this.app.profile);

@@ -41,5 +41,68 @@
       <path d="M2 27h45v10H2zM47 29h16v4H47zM10 37h13l-4 18H8zM29 37h8v11h-6zM15 20h25v7H15z" fill="none" stroke="currentColor" stroke-width="2.4"/>
       <path d="M20 13h17v7H20zM23 11h11v3H23z" fill="none" stroke="#b5d9ff" stroke-width="2"/><path d="M7 32h49" stroke="#b5d9ff" stroke-width="1.8"/>
     </symbol>
+    <symbol id="flak" viewBox="0 0 64 64">
+      <path d="M8 24h35v20H8zM43 26h18v5H43zM43 35h18v5H43zM15 44h12l-3 14h-8z" fill="currentColor" opacity=".25"/>
+      <path d="M8 24h35v20H8zM43 26h18v5H43zM43 35h18v5H43zM15 44h12l-3 14h-8zM14 29h24M14 37h24" fill="none" stroke="currentColor" stroke-width="2.5"/>
+      <path d="M48 20l2 5M56 43l3 5M48 46l-2 4" stroke="#f4c47c" stroke-width="3"/>
+    </symbol>
+    <symbol id="plasma" viewBox="0 0 64 64">
+      <path d="M5 20h35l12 12-12 18H5zM13 47h13l-2 12h-8z" fill="currentColor" opacity=".2"/>
+      <path d="M5 20h35l12 12-12 18H5zM13 47h13l-2 12h-8zM14 27h22l7 7-7 9H14z" fill="none" stroke="currentColor" stroke-width="2.5"/>
+      <circle cx="48" cy="33" r="10" fill="#7df0c8" opacity=".65"/><circle cx="48" cy="33" r="4" fill="#e0fff3"/>
+    </symbol>
+    <symbol id="arc" viewBox="0 0 64 64">
+      <path d="M6 23h37v20H6zM43 28h17v7H43zM14 43h11l-2 15h-8z" fill="currentColor" opacity=".22"/>
+      <path d="M6 23h37v20H6zM43 28h17v7H43zM14 43h11l-2 15h-8z" fill="none" stroke="currentColor" stroke-width="2.5"/>
+      <path d="M31 5L18 29h13l-7 26 23-34H34l8-16z" fill="#7edfff" stroke="#e0f7ff" stroke-width="1.5"/>
+    </symbol>
+    <symbol id="mortar" viewBox="0 0 64 64">
+      <path d="M17 52h38l-5 7H12zM23 45h18v9H23z" fill="currentColor" opacity=".3"/>
+      <path d="M17 52h38l-5 7H12zM23 45h18v9H23z" fill="none" stroke="currentColor" stroke-width="2.5"/>
+      <path d="M23 45L12 13l13-6 16 35z" fill="currentColor" opacity=".35" stroke="currentColor" stroke-width="2.5"/>
+      <path d="M14 14l10-4M42 8l3 7 7 1-3 6" fill="none" stroke="#ffb16d" stroke-width="3"/>
+    </symbol>
+    <symbol id="minigun" viewBox="0 0 64 64">
+      <path d="M4 22h32v23H4zM12 45h13l-2 14h-8z" fill="currentColor" opacity=".25"/>
+      <path d="M4 22h32v23H4zM12 45h13l-2 14h-8z" fill="none" stroke="currentColor" stroke-width="2.5"/>
+      <path d="M36 23h25v4H36zM36 30h25v4H36zM36 37h25v4H36zM36 44h25v4H36z" fill="none" stroke="currentColor" stroke-width="3"/>
+      <path d="M40 20v27M50 20v27" stroke="#ffd36b" stroke-width="2"/>
+    </symbol>
+    <symbol id="blade" viewBox="0 0 64 64">
+      <path d="M13 48l7 7 38-43-5-7z" fill="currentColor" opacity=".35"/>
+      <path d="M13 48l7 7 38-43-5-7zM9 42l12 12M7 55l5 5" fill="none" stroke="currentColor" stroke-width="3"/>
+      <path d="M20 47L55 10" stroke="#b5fff1" stroke-width="3"/><path d="M6 35l8 5-5 8M30 54l8 3" fill="none" stroke="currentColor" stroke-width="3"/>
+    </symbol>
+    <symbol id="revolver" viewBox="0 0 64 64">
+      <path d="M10 20h40v19H10zM50 23h11v6H50zM19 39h17l-4 20H17z" fill="currentColor" opacity=".28"/>
+      <path d="M10 20h40v19H10zM50 23h11v6H50zM19 39h17l-4 20H17z" fill="none" stroke="currentColor" stroke-width="2.5"/>
+      <circle cx="32" cy="29" r="8" fill="none" stroke="#ffd1a0" stroke-width="3"/><path d="M14 25h7" stroke="currentColor" stroke-width="3"/>
+    </symbol>
+    <symbol id="grenadier" viewBox="0 0 64 64">
+      <path d="M5 23h42v16H5zM47 27h14v6H47zM13 39h15l-3 19H12z" fill="currentColor" opacity=".25"/>
+      <path d="M5 23h42v16H5zM47 27h14v6H47zM13 39h15l-3 19H12z" fill="none" stroke="currentColor" stroke-width="2.5"/>
+      <circle cx="31" cy="46" r="11" fill="none" stroke="#ff9d6d" stroke-width="3"/><path d="M26 46h10M31 41v10" stroke="#ff9d6d" stroke-width="2"/>
+    </symbol>
+    <symbol id="pulse" viewBox="0 0 64 64">
+      <path d="M4 23h40v16H4zM44 27h17v5H44zM13 39h12l-2 18h-8zM29 39h8v12h-6z" fill="currentColor" opacity=".25"/>
+      <path d="M4 23h40v16H4zM44 27h17v5H44zM13 39h12l-2 18h-8zM29 39h8v12h-6zM16 17h20v6H16z" fill="none" stroke="currentColor" stroke-width="2.4"/>
+      <path d="M12 28h45M12 33h40M12 38h33" stroke="#7df0c8" stroke-width="2.5"/>
+    </symbol>
+    <symbol id="crossbow" viewBox="0 0 64 64">
+      <path d="M8 31h49v5H8zM28 36h9l-2 20h-7z" fill="currentColor" opacity=".3"/>
+      <path d="M8 31h49v5H8zM28 36h9l-2 20h-7z" fill="none" stroke="currentColor" stroke-width="2.5"/>
+      <path d="M12 8c23 4 35 16 40 25-6 11-19 20-40 23l11-23z" fill="none" stroke="currentColor" stroke-width="3"/>
+      <path d="M12 8l40 25-40 23M18 33h42" fill="none" stroke="#b5d9ff" stroke-width="2"/>
+    </symbol>
+    <symbol id="beam" viewBox="0 0 64 64">
+      <path d="M6 20h33l10 12-10 17H6zM13 49h12l-2 11h-8z" fill="currentColor" opacity=".2"/>
+      <path d="M6 20h33l10 12-10 17H6zM13 49h12l-2 11h-8zM15 27h20l5 6-5 9H15z" fill="none" stroke="currentColor" stroke-width="2.5"/>
+      <path d="M18 35h44" stroke="#e78cff" stroke-width="3"/><path d="M49 27l13 8-13 8" fill="#e78cff" opacity=".45"/>
+    </symbol>
+    <symbol id="flamethrower" viewBox="0 0 64 64">
+      <path d="M5 19h27v27H5zM32 25h16v8H32zM12 46h12l-2 14H10z" fill="currentColor" opacity=".25"/>
+      <path d="M5 19h27v27H5zM32 25h16v8H32zM12 46h12l-2 14H10zM11 25h14v14H11z" fill="none" stroke="currentColor" stroke-width="2.5"/>
+      <path d="M45 22c12 2 16 8 16 13-5-3-6 5-11 5 4-6-3-7-5-18z" fill="#ff9b58"/><path d="M47 27c6 1 9 4 10 6" stroke="#ffd08a" stroke-width="3"/>
+    </symbol>
   </defs>
 </svg>

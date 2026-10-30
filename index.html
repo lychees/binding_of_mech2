@@ -68,6 +68,7 @@
         <div class="section-title"><span>绘制工具</span><small>点击地图放置</small></div>
         <div id="level-palette" class="level-palette">
           <button class="active" data-level-tool="building">建筑</button><button data-level-tool="obstacle">障碍物</button>
+          <button data-level-tool="rock">可破坏岩壁</button>
           <button data-level-tool="crate">物资箱</button><button data-level-tool="raider">掠夺者</button>
           <button data-level-tool="drone">无人机</button><button data-level-tool="spawn">出生点</button>
           <button data-level-tool="extraction">撤离点</button><button data-level-tool="erase">删除</button>
@@ -239,6 +240,7 @@
         <div><b>SPACE</b><span>短距冲刺</span></div><div><b>H</b><span>打开 / 关闭帮助</span></div>
       </div>
       <p>机甲火力与防护更强，但无法进入建筑。离机后可穿过门洞、搜索室内容器；机甲会留在原地。机甲损毁时会紧急弹射，单兵阵亡或倒计时结束则丢失本次物资。</p>
+      <p>油桶、路障、废墟、岩壁和建筑墙体均可破坏。爆炸会造成范围破坏，击毁后留下瓦砾并回收合金；墙体缺口可供单兵通行。</p>
       <p>绿色区域为撤离点，在区域内停留 3 秒完成撤离。右上角小地图显示建筑、敌人和撤离信标。</p>
       <p>容器和敌人会掉落五档品质的随机装备。成功撤离后，可在顶部“人物 / 背包”中装备词缀物品并分配属性点；“创作工坊”可编辑关卡、机体、物品和敌人。</p>
       <p class="network-note">局域网联机：所有玩家启动同一个 <code>server.rb</code> 地址即可看到彼此并共同进入同种子地图。此原型同步位置与战斗特效，敌人由各自客户端模拟。</p>

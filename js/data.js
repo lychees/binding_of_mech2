@@ -22,6 +22,36 @@
       damage: 10, rate: 0.065, mag: 60, reload: 1.9, speed: 1800, spread: 0.014,
       heat: 2.8, pellets: 1, color: '#ef7dff', description: '高射速能量武器，持续压制能力极强。'
     },
+    flak: {
+      id: 'flak', kind: 'mech', name: '风暴·破片炮', tag: '散射 / 近距', price: 1600,
+      damage: 9, rate: 0.55, mag: 12, reload: 2.1, speed: 760, spread: 0.19,
+      heat: 9, pellets: 10, range: 420, color: '#f4c47c', description: '一次喷射十枚破片，近距离清扫敌群。'
+    },
+    plasma: {
+      id: 'plasma', kind: 'mech', name: '烈日·等离子炮', tag: '能量 / 范围', price: 2200,
+      damage: 72, rate: 0.75, mag: 7, reload: 2.6, speed: 430, spread: 0.018,
+      heat: 18, pellets: 1, blast: 95, color: '#7df0c8', description: '慢速等离子团命中后产生大范围爆炸。'
+    },
+    arc: {
+      id: 'arc', kind: 'mech', name: '雷霆·电弧炮', tag: '连锁 / 群攻', price: 2600,
+      damage: 34, rate: 0.42, mag: 14, reload: 2.2, speed: 1200, spread: 0.01,
+      heat: 10, pellets: 1, chain: 3, chainRange: 190, color: '#7edfff', description: '命中后向附近目标连续跳跃三次电弧。'
+    },
+    mortar: {
+      id: 'mortar', kind: 'mech', name: '攻城·重型迫击炮', tag: '抛物线 / 重爆', price: 3000,
+      damage: 96, rate: 1.15, mag: 4, reload: 3.2, speed: 330, spread: 0.012,
+      heat: 24, pellets: 1, blast: 125, lob: true, color: '#ffb16d', description: '炮弹越过墙体，以抛物线落地造成重爆。'
+    },
+    minigun: {
+      id: 'minigun', kind: 'mech', name: '火神·转管机枪', tag: '急速 / 大弹匣', price: 2100,
+      damage: 8, rate: 0.045, mag: 120, reload: 3, speed: 1050, spread: 0.06,
+      heat: 1.9, pellets: 1, color: '#ffd36b', description: '一百二十发弹匣与极高射速的持续火力。'
+    },
+    blade: {
+      id: 'blade', kind: 'mech', name: '裂阵·高频刀', tag: '近战 / 扇形', price: 1800,
+      damage: 105, rate: 0.62, mag: 12, reload: 1.4, speed: 700, spread: 0.45,
+      heat: 8, pellets: 5, range: 110, color: '#b5fff1', description: '向前方释放短距高频刃波，形成扇形斩击。'
+    },
     rifle: {
       id: 'rifle', kind: 'infantry', name: '灰隼·突击步枪', tag: '均衡 / 中距', price: 0,
       damage: 20, rate: 0.145, mag: 30, reload: 1.35, speed: 1100, spread: 0.026,
@@ -41,6 +71,36 @@
       id: 'marksman', kind: 'infantry', name: '寂静·射手步枪', tag: '精确 / 单发', price: 1100,
       damage: 58, rate: 0.58, mag: 12, reload: 1.75, speed: 1500, spread: 0.008,
       heat: 0, pellets: 1, color: '#b5d9ff', description: '半自动精确步枪，擅长解决远处目标。'
+    },
+    revolver: {
+      id: 'revolver', kind: 'infantry', name: '游侠·重型左轮', tag: '暴击 / 小弹匣', price: 700,
+      damage: 52, rate: 0.38, mag: 6, reload: 1.65, speed: 1250, spread: 0.018,
+      heat: 0, pellets: 1, critBonus: 0.18, color: '#ffd1a0', description: '六发高伤弹巢，额外提高百分之十八暴击率。'
+    },
+    grenadier: {
+      id: 'grenadier', kind: 'infantry', name: '破障·榴弹枪', tag: '爆炸 / 清房', price: 1200,
+      damage: 46, rate: 0.78, mag: 5, reload: 2.1, speed: 480, spread: 0.025,
+      heat: 0, pellets: 1, blast: 58, color: '#ff9d6d', description: '单兵榴弹造成室内范围杀伤，注意射击节奏。'
+    },
+    pulse: {
+      id: 'pulse', kind: 'infantry', name: '脉冲·三连发步枪', tag: '三连发 / 中距', price: 1000,
+      damage: 16, rate: 0.48, mag: 30, reload: 1.5, speed: 1200, spread: 0.035,
+      heat: 0, pellets: 1, burst: 3, burstDelay: 0.075, color: '#7df0c8', description: '每次扣动扳机连续射出三发子弹，消耗三发弹药。'
+    },
+    crossbow: {
+      id: 'crossbow', kind: 'infantry', name: '静默·电磁弩', tag: '穿透 / 单发', price: 1350,
+      damage: 76, rate: 0.82, mag: 6, reload: 2, speed: 1450, spread: 0.006,
+      heat: 0, pellets: 1, pierce: 3, color: '#b5d9ff', description: '电磁弩箭可连续穿透三个目标，适合狭长走廊。'
+    },
+    beam: {
+      id: 'beam', kind: 'infantry', name: '棱光·能量步枪', tag: '光束 / 急速', price: 1500,
+      damage: 7, rate: 0.055, mag: 80, reload: 2.1, speed: 1800, spread: 0.012,
+      heat: 0, pellets: 1, color: '#e78cff', description: '轻型高频能量步枪，以密集光束持续输出。'
+    },
+    flamethrower: {
+      id: 'flamethrower', kind: 'infantry', name: '焚风·喷火器', tag: '短距 / 火焰', price: 1100,
+      damage: 5, rate: 0.06, mag: 80, reload: 2.4, speed: 520, spread: 0.19,
+      heat: 0, pellets: 2, range: 165, color: '#ff9b58', description: '短距离双股火焰喷射，快速清理狭窄空间。'
     }
   };
 
