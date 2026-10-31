@@ -16,33 +16,71 @@
     <div class="brand"><span class="brand-mark">//</span><strong>断钢</strong><span>撤离协议</span><small>IRON EXTRACTION</small></div>
     <nav id="workspace-nav" class="workspace-nav">
       <button id="nav-hangar" class="active">格纳库</button>
+      <button id="nav-campaign">战役模式</button>
       <button id="nav-inventory">人物 / 背包</button>
       <button id="nav-editor">创作工坊</button>
     </nav>
     <div class="top-stats">
       <div class="network"><i id="net-dot"></i><span id="net-label">正在接入格纳库</span></div>
       <div class="credit"><span>信用点</span><strong id="credits">0</strong></div>
+      <button id="audio-button" class="audio-button" title="切换音乐与音效">音频 开</button>
+      <button id="cheat-button" class="cheat-button" title="切换无限信用点">作弊 关</button>
       <button id="help-button" class="icon-button" title="操作说明 (H)">?</button>
     </div>
   </header>
+
+  <section id="start-screen" class="start-screen">
+    <div class="start-content">
+      <div class="eyebrow">IRON EXTRACTION / TACTICAL BUILD</div>
+      <h1>断钢<span>撤离协议</span></h1>
+      <p class="start-slogan">驾驶重型机甲深入封锁区。搜索、战斗、撤离，活着把装备带回来。</p>
+      <div id="save-summary" class="save-summary">正在读取驾驶员档案…</div>
+      <div class="start-actions">
+        <button id="start-continue" class="start-primary">继续游戏 <span>→</span></button>
+        <button id="start-new" class="start-secondary">新游戏</button>
+        <button id="start-help" class="start-secondary">操作说明</button>
+      </div>
+      <div id="start-confirm" class="start-confirm hidden">
+        <strong>确定开始新游戏？</strong>
+        <p>当前驾驶员、装备、背包、改装和自定义内容将被重置，此操作无法撤销。</p>
+        <div><button id="start-confirm-new" class="danger-button">确认重置</button><button id="start-cancel-new">取消</button></div>
+      </div>
+      <div class="start-features"><span>局域网联机</span><span>双背包储物</span><span>可破坏地形</span><span>创作工坊</span></div>
+    </div>
+    <div class="start-footer">
+      <div class="start-pilots" aria-hidden="true"><svg viewBox="0 0 96 96"><use href="assets/pilots.svg#pilot-0"></use></svg><svg viewBox="0 0 96 96"><use href="assets/pilots.svg#pilot-1"></use></svg><svg viewBox="0 0 96 96"><use href="assets/pilots.svg#pilot-2"></use></svg></div>
+      <span>原创战术原型 · 本地存档 · 无需安装依赖</span>
+    </div>
+  </section>
+
+  <section id="campaign-screen" class="screen workspace hidden">
+    <div class="workspace-heading">
+      <div><div class="eyebrow">战役行动 / CAMPAIGN</div><h2>战役模式</h2></div>
+      <span class="editor-save-note">完成章节目标并撤离，解锁后续剧情与首通奖励</span>
+    </div>
+    <div id="campaign-list" class="campaign-list"></div>
+  </section>
 
   <section id="inventory-screen" class="screen workspace hidden">
     <div class="workspace-heading">
       <div><div class="eyebrow">驾驶员与装备 / LOADOUT</div><h2>人物 / 背包</h2></div>
       <div class="segmented"><button class="active" data-inventory-tab="infantry">单兵装备</button><button data-inventory-tab="mech">机甲装备</button></div>
-      <div class="capacity"><span>格纳库储物容量</span><b id="inventory-capacity">0 / 36</b></div>
+      <div class="capacity"><span>格纳库储物容量</span><b id="inventory-capacity">0 / 48 格</b></div>
     </div>
     <div class="inventory-layout">
       <aside class="workspace-panel character-panel">
         <div id="character-portrait" class="character-portrait"></div>
+        <label class="pilot-select-label"><span>驾驶员 / PILOT</span><select id="pilot-select"></select></label>
+        <div id="pilot-perk" class="pilot-perk"></div>
         <div class="character-level"><span>驾驶员等级</span><b id="character-level">1</b><small id="character-xp">0 / 500 XP</small><div><i id="character-xp-fill"></i></div></div>
         <div id="equipment-slots" class="equipment-slots"></div>
         <div class="section-title"><span>综合战斗属性</span></div>
         <div id="paperdoll-stats" class="paperdoll-stats"></div>
       </aside>
       <section class="workspace-panel backpack-panel">
-        <div class="panel-heading"><div><span>随身储物</span><small>点击物品查看详情，装备会自动替换旧件</small></div><div><button id="inventory-sort">整理</button><button id="inventory-sell-common">出售普通</button></div></div>
+        <div class="panel-heading"><div><span>随身储物</span><small>拖拽整理，拖到装备槽装备，拖回背包卸下</small></div><div><button id="inventory-sort">整理</button><button id="inventory-sell-common">出售普通</button></div></div>
         <div id="inventory-grid" class="inventory-grid"></div>
+        <div id="inventory-overflow" class="inventory-overflow"></div>
         <div class="inventory-legend"><span><i class="rarity-common"></i>普通</span><span><i class="rarity-magic"></i>魔法</span><span><i class="rarity-rare"></i>稀有</span><span><i class="rarity-epic"></i>史诗</span><span><i class="rarity-legendary"></i>传说</span></div>
       </section>
       <aside class="workspace-panel detail-panel">
@@ -58,7 +96,7 @@
   <section id="editor-screen" class="screen workspace hidden">
     <div class="workspace-heading editor-heading">
       <div><div class="eyebrow">创作工坊 / FORGE</div><h2>编辑器</h2></div>
-      <div class="segmented"><button class="active" data-editor-tab="level">关卡</button><button data-editor-tab="mech">机甲</button><button data-editor-tab="item">装备 / 物品</button><button data-editor-tab="unit">单位</button></div>
+      <div class="segmented"><button class="active" data-editor-tab="level">关卡</button><button data-editor-tab="mech">机甲</button><button data-editor-tab="item">装备 / 物品</button><button data-editor-tab="unit">单位</button><button data-editor-tab="campaign">战役</button></div>
       <span class="editor-save-note">所有内容保存在本机，可直接投入实战</span>
     </div>
 
@@ -83,6 +121,26 @@
       <div class="level-canvas-wrap"><canvas id="level-canvas" width="960" height="665"></canvas><div class="level-status"><span id="level-tool-label">当前：建筑</span><span>2600 × 1800 · 网格 40</span></div></div>
     </div>
 
+    <div id="editor-campaign" class="editor-page hidden campaign-editor-layout">
+      <aside class="workspace-panel campaign-editor-form">
+        <div class="panel-heading"><span>战役设置</span><button id="campaign-new">新建战役</button></div>
+        <label class="field"><span>战役名称</span><input id="campaign-name" maxlength="28" value="自定义战役"></label>
+        <label class="field"><span>战役简介</span><input id="campaign-description" maxlength="100" value="自定义剧情战役"></label>
+        <div class="section-title"><span>章节配置</span></div>
+        <label class="field"><span>章节标题</span><input id="campaign-stage-title" maxlength="36" value="第一章：新的行动"></label>
+        <label class="field"><span>剧情简报</span><input id="campaign-stage-briefing" maxlength="140" value="完成目标并安全撤离。"></label>
+        <div class="field-row"><label class="field"><span>地图方式</span><select id="campaign-map-mode"><option value="seed">地图种子</option><option value="custom">自定义关卡</option></select></label><label class="field"><span>地图种子</span><input id="campaign-map-seed" maxlength="24" value="CUSTOM-01"></label></div>
+        <label class="field"><span>自定义关卡</span><select id="campaign-map-id"><option value="">不使用</option></select></label>
+        <div class="field-row"><label class="field"><span>章节目标</span><select id="campaign-objective"><option value="crates">搜索容器</option><option value="kills">清除敌人</option><option value="destroyed">破坏地形</option><option value="gear">获得装备</option></select></label><label class="field"><span>目标数量</span><input id="campaign-target" type="number" min="1" max="99" value="2"></label></div>
+        <div class="field-row"><label class="field"><span>信用点奖励</span><input id="campaign-reward-credits" type="number" min="0" max="1000000" value="500"></label><label class="field"><span>装备奖励件数</span><input id="campaign-reward-gear" type="number" min="0" max="6" value="1"></label></div>
+        <div class="editor-action-grid"><button id="campaign-add-stage">添加章节</button><button id="campaign-save" class="primary">保存战役</button></div>
+        <div class="editor-action-grid"><button id="campaign-test-stage">测试选中章节</button><button id="campaign-delete">删除战役</button></div>
+        <p class="editor-help">章节按顺序解锁。目标完成后仍需正常撤离，首通奖励只发放一次。</p>
+        <div class="section-title"><span>自定义战役</span></div><div id="custom-campaign-list" class="saved-list"></div>
+      </aside>
+      <section class="workspace-panel"><div class="panel-heading"><div><span>章节顺序</span><small>选择章节后可编辑、测试或删除</small></div></div><div id="campaign-stage-list" class="saved-list detailed"></div></section>
+    </div>
+
     <div id="editor-mech" class="editor-page hidden mech-editor-layout">
       <div class="mech-preview-wrap"><canvas id="mech-editor-canvas" width="560" height="570"></canvas><div><span>实时结构预览</span><b id="mech-preview-name">MX-04「灰犀」</b></div></div>
       <aside class="workspace-panel mech-config">
@@ -94,6 +152,8 @@
         <div id="mech-system-warning" class="mech-system-warning"></div>
         <div class="section-title"><span>部件护甲 / 耐久</span><small>战斗中可分别损毁</small></div>
         <div id="mech-part-list" class="mech-part-list"></div>
+        <div class="section-title"><span>性能改装</span><small>每线最高 5 级</small></div>
+        <div id="tuning-options" class="tuning-options"></div>
         <button id="mech-save" class="wide-primary">保存机体配置</button>
         <p class="editor-help">武器、装备与改装都会占用出力和负重。超载或供电不足会降低速度、转向与散热。</p>
       </aside>
@@ -106,6 +166,8 @@
         <label class="field"><span>名称</span><input id="item-name" maxlength="28" value="自定义装备"></label>
         <div class="field-row"><label class="field"><span>装备槽</span><select id="item-slot"></select></label><label class="field"><span>品质</span><select id="item-rarity"></select></label></div>
         <div class="field-row"><label class="field"><span>出售价值</span><input id="item-price" type="number" min="1" max="999999" value="500"></label><label class="field"><span>显示颜色</span><input id="item-color" type="color" value="#e7ca68"></label></div>
+        <div class="field-row"><label class="field"><span>宽度（格）</span><input id="item-width" type="number" min="1" max="3" value="2"></label><label class="field"><span>高度（格）</span><input id="item-height" type="number" min="1" max="3" value="2"></label></div>
+        <label class="field"><span>目标背包</span><select id="item-target"><option value="pilot">单兵背包</option><option value="mech">机甲大背包</option></select></label>
         <div class="section-title"><span>装备词缀</span><small>百分比使用小数，如 0.1 = 10%</small></div>
         <div id="item-affix-editor"></div>
         <button id="item-save" class="wide-primary">保存并放入背包</button>
@@ -211,11 +273,23 @@
       <div><span id="weapon-kind">主武器</span><strong id="weapon-name">狂风·机炮</strong><small id="reload-label">R 装填 · 1/2 切换</small></div>
       <b id="ammo-label">36</b>
     </div>
-    <div class="loot-hud"><span>携带物资</span><strong id="carry-value">0</strong><small id="carry-items">背包 0/12 · 装备 0</small></div>
+    <div class="loot-hud"><span>携带物资</span><strong id="carry-value">0</strong><small id="carry-items">单兵 0/48 · 机甲 0/80 · B 背包</small></div>
     <div id="dash-hud" class="dash-hud">SPACE <span>冲刺就绪</span></div>
     <div id="interact-prompt" class="interact-prompt hidden"><strong></strong><span></span><div><i></i></div></div>
-    <div class="controls-strip">WASD 移动　鼠标 瞄准/射击　E 互动/登机　F 离机　R 装填　SPACE 冲刺　H 帮助</div>
+    <div class="controls-strip">WASD 移动　鼠标 瞄准/射击　E 互动/登机　F 离机　R 装填　SPACE 冲刺　B 背包　H 帮助</div>
   </section>
+
+  <div id="raid-inventory" class="modal hidden" role="dialog" aria-modal="true">
+    <div class="raid-bag-window">
+      <div class="raid-bag-heading"><div><div class="eyebrow">行动背包 / FIELD INVENTORY</div><h2>战地物资整理</h2></div><button id="raid-close" class="modal-close">×</button></div>
+      <div class="raid-bag-columns">
+        <section><h3>单兵背包 <span id="raid-pilot-volume">0 / 18 格</span></h3><div id="raid-pilot-items" class="raid-bag-items"></div></section>
+        <section><h3>机甲大背包 <span id="raid-mech-volume">0 / 36 格</span></h3><div id="raid-mech-items" class="raid-bag-items"></div></section>
+      </div>
+      <div class="raid-bag-actions"><span id="raid-selected">选择一件物品进行整理</span><button id="raid-sort">整理背包</button><button id="raid-transfer">转移物品</button><button id="raid-drop" class="danger">丢弃</button></div>
+      <p class="raid-bag-note">打开背包时战斗暂停。容量包含仓库与本次战利品；仓库和已装备物品只读。转移受目标背包容量限制，丢弃的物品无法恢复。按 B 关闭。</p>
+    </div>
+  </div>
 
   <div id="debrief" class="modal hidden" role="dialog" aria-modal="true">
     <div class="debrief-card">
@@ -224,6 +298,7 @@
       <p id="debrief-reason">物资已安全送回格纳库</p>
       <div id="debrief-stats" class="debrief-stats"></div>
       <div id="debrief-loot" class="debrief-loot"></div>
+      <button id="next-campaign" class="deploy-button next-campaign hidden">下一章 <span>→</span></button>
       <button id="return-button" class="deploy-button">返回格纳库 <span>→</span></button>
     </div>
   </div>
@@ -237,8 +312,10 @@
         <div><b>WASD</b><span>移动</span></div><div><b>鼠标左键</b><span>瞄准射击</span></div>
         <div><b>1 / 2</b><span>切换武器</span></div><div><b>R</b><span>手动装填</span></div>
         <div><b>F</b><span>离开机甲</span></div><div><b>E</b><span>搜索 / 登上机甲</span></div>
-        <div><b>SPACE</b><span>短距冲刺</span></div><div><b>H</b><span>打开 / 关闭帮助</span></div>
+        <div><b>SPACE</b><span>短距冲刺</span></div><div><b>B</b><span>整理双背包</span></div>
+        <div><b>V</b><span>艾萨克紧急修复</span></div><div><b>H</b><span>打开 / 关闭帮助</span></div>
       </div>
+      <div class="audio-settings"><label>音乐音量<input id="music-volume" type="range" min="0" max="100" step="1"></label><label>音效音量<input id="sfx-volume" type="range" min="0" max="100" step="1"></label></div>
       <p>机甲火力与防护更强，但无法进入建筑。离机后可穿过门洞、搜索室内容器；机甲会留在原地。机甲损毁时会紧急弹射，单兵阵亡或倒计时结束则丢失本次物资。</p>
       <p>油桶、路障、废墟、岩壁和建筑墙体均可破坏。爆炸会造成范围破坏，击毁后留下瓦砾并回收合金；墙体缺口可供单兵通行。</p>
       <p>绿色区域为撤离点，在区域内停留 3 秒完成撤离。右上角小地图显示建筑、敌人和撤离信标。</p>
@@ -249,14 +326,20 @@
 
   <div id="toast-container" aria-live="polite"></div>
   <script src="js/data.js"></script>
+  <script src="js/pilots.js"></script>
   <script src="js/items.js"></script>
+  <script src="js/campaign-data.js"></script>
   <script src="js/core.js"></script>
   <script src="js/assets.js"></script>
   <script src="js/legacy-models.js"></script>
   <script src="js/render.js"></script>
   <script src="js/mission.js"></script>
   <script src="js/inventory.js"></script>
+  <script src="js/campaign-editor.js"></script>
   <script src="js/editors.js"></script>
+  <script src="js/raid-bags.js"></script>
+  <script src="js/campaign.js"></script>
+  <script src="js/audio.js"></script>
   <script src="js/game.js"></script>
 </body>
 </html>

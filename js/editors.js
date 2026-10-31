@@ -32,6 +32,7 @@
       this.renderCustomItems();
       this.renderUnitList();
       this.newUnit();
+      this.campaignEditor = new root.MechCampaignEditorUI(this);
     }
 
     bind() {
@@ -82,7 +83,8 @@
     show(tab) {
       this.tab = tab || 'level';
       document.querySelectorAll('[data-editor-tab]').forEach(function (button) { button.classList.toggle('active', button.dataset.editorTab === this.tab); }, this);
-      ['level', 'mech', 'item', 'unit'].forEach(function (name) { this.ui['editor-' + name].classList.toggle('hidden', name !== this.tab); }, this);
+      ['level', 'mech', 'item', 'unit', 'campaign'].forEach(function (name) { this.ui['editor-' + name].classList.toggle('hidden', name !== this.tab); }, this);
+      if (this.tab === 'campaign') this.campaignEditor.render();
       if (this.tab === 'level') { this.renderLevel(); this.renderLevelList(); }
       if (this.tab === 'mech') {
         this.mechDraft = copy(this.app.profile.mech);
@@ -232,6 +234,7 @@
         const key = entry[0]; const frame = entry[1];
         if (key === 'scout') container.appendChild(el('div', 'chassis-group', '原创机体 / ORIGINAL'));
         if (key === 'redDragon') container.appendChild(el('div', 'chassis-group', '燃烧战车2 · 致敬重制 / 10 辆'));
+        if (key === 'itbCombat') container.appendChild(el('div', 'chassis-group', '陷阵之志 · 致敬重制 / 6 套'));
         const button = el('button', 'chassis-option' + (this.mechDraft.chassis === key ? ' active' : '') + (frame.remake ? ' remake' : ''));
         button.append(el('b', '', frame.name), el('span', '', frame.role), el('small', '', frame.description));
         const thumbnail = el('canvas', 'chassis-thumbnail'); thumbnail.width = 92; thumbnail.height = 96;
@@ -282,6 +285,31 @@
         row.append(el('span', '', part.name), el('b', '', '护甲 ' + part.armor), el('small', '', '耐久 ' + part.maxHp));
         partList.appendChild(row);
       });
+      this.renderTuning();
+    }
+
+    renderTuning() {
+      const container = this.ui['tuning-options']; container.innerHTML = '';
+      Object.entries(root.MechItems.tuning).forEach(function (entry) {
+        const key = entry[0]; const definition = entry[1]; const level = this.app.profile.mech.tuning[key];
+        const row = el('div', 'tuning-row');
+        const copyBlock = el('div', 'tuning-copy');
+        copyBlock.append(el('b', '', definition.name), el('small', '', definition.effect));
+        const levelLabel = el('span', 'tuning-level', 'Lv.' + level);
+        const button = el('button', 'tuning-buy', level >= 5 ? '已满级' : (this.app.profile.cheatMode ? '免费升级' : (definition.baseCost * (level + 1)).toLocaleString() + ' 升级'));
+        button.disabled = level >= 5;
+        button.addEventListener('click', function () {
+          const current = this.app.profile.mech.tuning[key]; if (current >= 5) return;
+          const cost = definition.baseCost * (current + 1);
+          if (!this.app.profile.cheatMode && this.app.profile.credits < cost) { this.app.toast('信用点不足，需要 ' + cost.toLocaleString(), true); return; }
+          if (!this.app.profile.cheatMode) this.app.profile.credits -= cost;
+          this.app.profile.mech.tuning[key] += 1; this.mechDraft = copy(this.app.profile.mech);
+          this.app.audio.play('equip');
+          this.app.renderProfile(); this.app.renderLoadout(); this.renderMechPreview();
+          this.app.toast(definition.name + ' 升至 Lv.' + this.app.profile.mech.tuning[key]);
+        }.bind(this));
+        row.append(copyBlock, levelLabel, button); container.appendChild(row);
+      }, this);
     }
 
     populateItemEditor() {
@@ -309,7 +337,7 @@
     newItem() {
       this.ui['item-edit-id'].value = ''; this.ui['item-name'].value = '自定义装备';
       this.ui['item-slot'].value = 'infArmor'; this.ui['item-rarity'].value = 'rare'; this.ui['item-price'].value = 500;
-      this.ui['item-color'].value = '#e7ca68';
+      this.ui['item-color'].value = '#e7ca68'; this.ui['item-width'].value = 2; this.ui['item-height'].value = 2;
       for (let i = 0; i < 4; i += 1) { this.ui['item-stat-' + i].value = ''; this.ui['item-stat-value-' + i].value = 0; }
     }
 
@@ -317,6 +345,7 @@
       this.show('item'); this.ui['item-edit-id'].value = item.id; this.ui['item-name'].value = item.name;
       this.ui['item-slot'].value = item.slot; this.ui['item-rarity'].value = item.rarity;
       this.ui['item-price'].value = item.value; this.ui['item-color'].value = item.color || root.MechItems.rarities[item.rarity].color;
+      const size = root.MechItems.itemSize(item); this.ui['item-width'].value = size.w; this.ui['item-height'].value = size.h;
       const entries = Object.entries(item.affixes || {});
       for (let i = 0; i < 4; i += 1) {
         this.ui['item-stat-' + i].value = entries[i] ? entries[i][0] : '';
@@ -325,7 +354,6 @@
     }
 
     saveItem() {
-      if (this.app.profile.inventory.length >= this.app.profile.inventoryCapacity) { this.app.toast('背包已满，请先清理空间', true); return; }
       const id = this.ui['item-edit-id'].value || root.MechItems.newId('custom-item');
       const slot = this.ui['item-slot'].value; const rarity = this.ui['item-rarity'].value;
       const affixes = {};
@@ -341,11 +369,18 @@
         name: this.ui['item-name'].value.trim().slice(0, 28) || '自定义装备', rarity,
         level: this.app.profile.character.level, affixes,
         value: Math.max(1, Math.min(999999, Number(this.ui['item-price'].value) || 500)),
-        color: this.ui['item-color'].value, custom: true
+        color: this.ui['item-color'].value, custom: true,
+        w: Math.max(1, Math.min(3, Number(this.ui['item-width'].value) || 1)),
+        h: Math.max(1, Math.min(3, Number(this.ui['item-height'].value) || 1))
       };
+      const inventoryItem = copy(item); inventoryItem.id = root.MechItems.newId('gear');
+      const target = this.ui['item-target'].value;
+      const canAdd = target === 'mech' ? root.MechItems.canAddMechItem(this.app.profile, inventoryItem) : root.MechItems.canAddItem(this.app.profile, inventoryItem);
+      if (!canAdd) { this.app.toast('目标背包剩余空间无法容纳该物品形状，请先整理', true); return; }
       const index = this.app.profile.customItems.findIndex(function (entry) { return entry.id === id; });
       if (index >= 0) this.app.profile.customItems[index] = copy(item); else this.app.profile.customItems.push(copy(item));
-      const inventoryItem = copy(item); inventoryItem.id = root.MechItems.newId('gear'); this.app.profile.inventory.push(inventoryItem);
+      if (target === 'mech') { this.app.profile.mechInventory.push(inventoryItem); root.MechItems.compactMechInventory(this.app.profile); }
+      else { this.app.profile.inventory.push(inventoryItem); root.MechItems.compactInventory(this.app.profile); }
       this.ui['item-edit-id'].value = id; this.app.saveProfile(); this.renderCustomItems();
       this.app.toast('物品已保存并放入背包');
     }
@@ -354,12 +389,17 @@
       const list = this.ui['custom-item-list']; list.innerHTML = '';
       this.app.profile.customItems.forEach(function (item) {
         const entry = el('div', 'saved-entry'); entry.style.borderLeftColor = item.color;
-        entry.append(el('b', '', item.name), el('small', '', root.MechItems.slots[item.slot].name + ' · ' + Object.keys(item.affixes || {}).length + ' 词缀 · ' + item.value + ' 信用点'));
+        entry.append(el('b', '', item.name), el('small', '', root.MechItems.slots[item.slot].name + ' · ' + Object.keys(item.affixes || {}).length + ' 词缀 · ' + root.MechItems.itemVolume(item) + ' 格 · ' + item.value + ' 信用点'));
         const actions = el('div', 'saved-actions'); const edit = el('button', '', '编辑'); const clone = el('button', '', '复制到背包'); const remove = el('button', '', '删除');
         edit.addEventListener('click', function () { this.loadItem(item); }.bind(this));
         clone.addEventListener('click', function () {
-          if (this.app.profile.inventory.length >= this.app.profile.inventoryCapacity) { this.app.toast('背包已满', true); return; }
-          const cloned = copy(item); cloned.id = root.MechItems.newId('gear'); this.app.profile.inventory.push(cloned); this.app.saveProfile(); this.app.toast('已复制到背包');
+          const cloned = copy(item); cloned.id = root.MechItems.newId('gear');
+          const target = this.ui['item-target'].value;
+          const canAdd = target === 'mech' ? root.MechItems.canAddMechItem(this.app.profile, cloned) : root.MechItems.canAddItem(this.app.profile, cloned);
+          if (!canAdd) { this.app.toast('目标背包剩余空间无法容纳该物品形状', true); return; }
+          if (target === 'mech') { this.app.profile.mechInventory.push(cloned); root.MechItems.compactMechInventory(this.app.profile); }
+          else { this.app.profile.inventory.push(cloned); root.MechItems.compactInventory(this.app.profile); }
+          this.app.saveProfile(); this.app.toast('已复制到背包');
         }.bind(this));
         remove.addEventListener('click', function () { this.app.profile.customItems = this.app.profile.customItems.filter(function (entryItem) { return entryItem.id !== item.id; }); this.app.saveProfile(); this.renderCustomItems(); }.bind(this));
         actions.append(edit, clone, remove); entry.appendChild(actions); list.appendChild(entry);

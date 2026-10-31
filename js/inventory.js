@@ -14,8 +14,8 @@
       this.tab = 'infantry';
       this.selectedId = null;
       this.ui = {};
-      ['inventory-capacity', 'character-portrait', 'character-level', 'character-xp', 'character-xp-fill', 'equipment-slots',
-        'paperdoll-stats', 'inventory-grid', 'item-detail', 'attribute-points', 'character-attributes',
+      ['inventory-capacity', 'character-portrait', 'pilot-select', 'pilot-perk', 'character-level', 'character-xp', 'character-xp-fill', 'equipment-slots',
+        'paperdoll-stats', 'inventory-grid', 'inventory-overflow', 'item-detail', 'attribute-points', 'character-attributes',
         'inventory-sort', 'inventory-sell-common'].forEach(function (id) {
           const key = id.replace(/-([a-z])/g, function (_, letter) { return letter.toUpperCase(); });
           this.ui[key] = document.getElementById(id);
@@ -23,16 +23,108 @@
       document.querySelectorAll('[data-inventory-tab]').forEach(function (button) {
         button.addEventListener('click', function () { this.tab = button.dataset.inventoryTab; this.render(); }.bind(this));
       }, this);
+      Object.entries(root.MechPilots).forEach(function (entry) {
+        const option = element('option', '', entry[1].name); option.value = entry[0]; this.ui.pilotSelect.appendChild(option);
+      }, this);
+      this.ui.pilotSelect.addEventListener('change', function () {
+        this.app.profile.pilot = this.ui.pilotSelect.value; this.app.saveProfile(); this.app.renderLoadout(); this.render();
+      }.bind(this));
       this.ui.inventorySort.addEventListener('click', this.sort.bind(this));
       this.ui.inventorySellCommon.addEventListener('click', this.sellCommons.bind(this));
+      this.dragged = null;
+      this.ui.inventoryGrid.addEventListener('dragover', this.handleGridDragOver.bind(this));
+      this.ui.inventoryGrid.addEventListener('drop', this.handleGridDrop.bind(this));
+      this.ui.inventoryGrid.addEventListener('dragleave', this.clearDropTargets.bind(this));
+      document.addEventListener('dragend', this.clearDragState.bind(this));
+    }
+
+    items() { return this.tab === 'mech' ? this.app.profile.mechInventory : this.app.profile.inventory; }
+    setItems(items) { this.app.profile[this.tab === 'mech' ? 'mechInventory' : 'inventory'] = items; }
+    overflow() { return this.app.profile[this.tab === 'mech' ? 'mechInventoryOverflow' : 'inventoryOverflow']; }
+    setOverflow(items) { this.app.profile[this.tab === 'mech' ? 'mechInventoryOverflow' : 'inventoryOverflow'] = items; }
+    capacity() { return this.tab === 'mech' ? this.app.profile.mechInventoryCapacity : this.app.profile.inventoryCapacity; }
+    width() { return this.tab === 'mech' ? this.app.profile.mechInventoryWidth : this.app.profile.inventoryWidth; }
+    height() { return this.tab === 'mech' ? this.app.profile.mechInventoryHeight : this.app.profile.inventoryHeight; }
+    compact() { return this.tab === 'mech' ? root.MechItems.compactMechInventory(this.app.profile) : root.MechItems.compactInventory(this.app.profile); }
+    canAdd(item) { return this.tab === 'mech' ? root.MechItems.canAddMechItem(this.app.profile, item) : root.MechItems.canAddItem(this.app.profile, item); }
+
+    startDrag(event, source, slot, id) {
+      this.dragged = { source, slot, id };
+      event.currentTarget.classList.add('dragging');
+      if (event.dataTransfer) {
+        event.dataTransfer.effectAllowed = 'move';
+        event.dataTransfer.setData('text/plain', id);
+      }
+    }
+
+    cellFromEvent(event) {
+      const rect = this.ui.inventoryGrid.getBoundingClientRect();
+      return {
+        x: Math.max(0, Math.min(this.width() - 1, Math.floor((event.clientX - rect.left) / (rect.width / this.width())))),
+        y: Math.max(0, Math.min(this.height() - 1, Math.floor((event.clientY - rect.top) / 61)))
+      };
+    }
+
+    handleGridDragOver(event) {
+      if (!this.dragged) return;
+      event.preventDefault();
+      const cell = this.cellFromEvent(event);
+      this.clearDropTargets();
+      const target = Array.from(this.ui.inventoryGrid.children).find(function (node) { return node.dataset.cell === cell.x + ',' + cell.y; });
+      if (target) target.classList.add('drop-target');
+    }
+
+    handleGridDrop(event) {
+      if (!this.dragged) return;
+      event.preventDefault();
+      const cell = this.cellFromEvent(event);
+      if (this.dragged.source === 'equipped') this.unequip(this.dragged.slot);
+      else this.moveItem(this.dragged.id, cell.x, cell.y);
+      this.clearDragState();
+    }
+
+    handleEquipmentDrop(slot) {
+      if (!this.dragged) return;
+      if (this.dragged.source === 'inventory' && this.dragged.slot === slot) this.equip(this.dragged.id);
+      else if (this.dragged.source === 'equipped' && this.dragged.slot === slot) this.unequip(slot);
+      else this.app.toast('该物品与装备槽不匹配', true);
+      this.clearDragState();
+    }
+
+    moveItem(id, x, y) {
+      const item = this.items().find(function (entry) { return entry.id === id; });
+      if (!item) return;
+      const remaining = this.items().filter(function (entry) { return entry.id !== id; });
+      if (!root.MechItems.canPlaceAt(remaining, item, x, y, this.width(), this.height())) {
+        this.app.toast('空间不足或与其他物品重叠', true);
+        return;
+      }
+      item.x = x; item.y = y;
+      remaining.push(item); this.setItems(remaining); this.selectedId = id;
+      this.app.saveProfile(); this.render();
+    }
+
+    clearDropTargets() {
+      this.ui.inventoryGrid.querySelectorAll('.drop-target').forEach(function (node) { node.classList.remove('drop-target'); });
+      this.ui.equipmentSlots.querySelectorAll('.drag-over').forEach(function (node) { node.classList.remove('drag-over'); });
+    }
+
+    clearDragState() {
+      this.clearDropTargets();
+      this.ui.inventoryGrid.querySelectorAll('.dragging').forEach(function (node) { node.classList.remove('dragging'); });
+      this.ui.equipmentSlots.querySelectorAll('.dragging').forEach(function (node) { node.classList.remove('dragging'); });
+      this.dragged = null;
     }
 
     render() {
       const profile = this.app.profile;
+      const pilot = root.MechPilots[profile.pilot];
       this.ui.characterPortrait.innerHTML = '';
-      this.ui.characterPortrait.appendChild(root.MechAssets.portrait(profile.callsign, profile.callsign));
+      this.ui.characterPortrait.appendChild(root.MechAssets.portrait(profile.pilot, pilot.name));
+      this.ui.pilotSelect.value = profile.pilot;
+      this.ui.pilotPerk.textContent = pilot.role + ' · ' + pilot.perk;
       document.querySelectorAll('[data-inventory-tab]').forEach(function (button) { button.classList.toggle('active', button.dataset.inventoryTab === this.tab); }, this);
-      this.ui.inventoryCapacity.textContent = profile.inventory.length + ' / ' + profile.inventoryCapacity;
+      this.ui.inventoryCapacity.textContent = root.MechItems.inventoryUsed(this.items()) + ' / ' + this.capacity() + ' 格';
       const character = profile.character;
       const needed = character.level * 500;
       this.ui.characterLevel.textContent = character.level;
@@ -41,6 +133,7 @@
       this.renderEquipment();
       this.renderStats();
       this.renderGrid();
+      this.renderOverflow();
       this.renderDetail();
       this.renderAttributes();
     }
@@ -61,6 +154,11 @@
           if (item) { this.selectedId = item.id; this.renderDetail(); }
           else this.app.toast('从右侧背包选择一件对应槽位装备');
         }.bind(this));
+        button.draggable = !!item;
+        if (item) button.addEventListener('dragstart', function (event) { this.startDrag(event, 'equipped', slot, item.id); }.bind(this));
+        button.addEventListener('dragover', function (event) { event.preventDefault(); button.classList.add('drag-over'); });
+        button.addEventListener('dragleave', function () { button.classList.remove('drag-over'); });
+        button.addEventListener('drop', function (event) { event.preventDefault(); this.handleEquipmentDrop(slot); }.bind(this));
         container.appendChild(button);
       }, this);
     }
@@ -91,26 +189,52 @@
     renderGrid() {
       const grid = this.ui.inventoryGrid;
       grid.innerHTML = '';
-      for (let i = 0; i < this.app.profile.inventoryCapacity; i += 1) {
-        const item = this.app.profile.inventory[i];
-        if (!item) { grid.appendChild(element('div', 'inventory-empty')); continue; }
+      grid.style.gridTemplateColumns = 'repeat(' + this.width() + ', minmax(38px, 1fr))';
+      for (let y = 0; y < this.height(); y += 1) for (let x = 0; x < this.width(); x += 1) {
+        const empty = element('div', 'inventory-empty');
+        empty.dataset.cell = x + ',' + y;
+        empty.style.gridColumn = String(x + 1); empty.style.gridRow = String(y + 1);
+        grid.appendChild(empty);
+      }
+      this.items().forEach(function (item) {
+        const size = root.MechItems.itemSize(item);
         const rarity = root.MechItems.rarities[item.rarity] || root.MechItems.rarities.common;
         const button = element('button', 'inventory-item' + (item.id === this.selectedId ? ' selected' : ''));
         button.style.setProperty('--item-color', item.color || rarity.color);
-        button.title = item.name;
+        button.style.gridColumn = (item.x + 1) + ' / span ' + size.w;
+        button.style.gridRow = (item.y + 1) + ' / span ' + size.h;
+        button.title = item.name + ' · ' + size.w + '×' + size.h + ' 格';
         button.append(root.MechAssets.equipment(item.slot, item.name));
         button.append(element('span', 'item-level', item.level || 1));
-        button.append(element('span', 'item-slot-name', root.MechItems.slots[item.slot].name));
+        button.append(element('span', 'item-slot-name', root.MechItems.slots[item.slot].name + ' ' + size.w + '×' + size.h));
         button.append(element('span', 'item-affix-count', '◆' + Object.keys(item.affixes || {}).length));
+        button.draggable = true;
+        button.addEventListener('dragstart', function (event) { this.startDrag(event, 'inventory', item.slot, item.id); }.bind(this));
         button.addEventListener('click', function () { this.selectedId = item.id; this.renderGrid(); this.renderDetail(); }.bind(this));
         button.addEventListener('dblclick', function () { this.equip(item.id); }.bind(this));
         grid.appendChild(button);
-      }
+      }, this);
+    }
+
+    renderOverflow() {
+      const container = this.ui.inventoryOverflow; container.innerHTML = '';
+      const overflow = this.overflow() || [];
+      if (!overflow.length) return;
+      container.append(element('span', '', '溢出存储 ' + overflow.length + ' 件 · ' + root.MechItems.inventoryUsed(overflow) + ' 格'));
+      const compact = element('button', '', '重新装箱');
+      compact.addEventListener('click', function () { this.compact(); this.app.saveProfile(); this.render(); }.bind(this));
+      const sell = element('button', '', '出售溢出');
+      sell.addEventListener('click', function () {
+        const value = overflow.reduce(function (sum, item) { return sum + Math.round(item.value * .35); }, 0);
+        this.app.profile.credits += value; this.setOverflow([]);
+        this.app.renderProfile(); this.render(); this.app.toast('溢出物品已出售 +' + value);
+      }.bind(this));
+      container.append(compact, sell);
     }
 
     findItem(id) {
-      const inventoryIndex = this.app.profile.inventory.findIndex(function (item) { return item.id === id; });
-      if (inventoryIndex >= 0) return { item: this.app.profile.inventory[inventoryIndex], location: 'inventory', index: inventoryIndex };
+      const inventoryIndex = this.items().findIndex(function (item) { return item.id === id; });
+      if (inventoryIndex >= 0) return { item: this.items()[inventoryIndex], location: 'inventory', index: inventoryIndex };
       const slot = Object.keys(this.app.profile.equipped).find(function (key) {
         return this.app.profile.equipped[key] && this.app.profile.equipped[key].id === id;
       }, this);
@@ -132,7 +256,8 @@
       container.append(element('div', 'eyebrow', rarity.name + ' / ' + (found.location === 'equipped' ? '已装备' : '背包物品')));
       const detailIcon = root.MechAssets.equipment(item.slot, item.name); detailIcon.classList.add('detail-art'); container.appendChild(detailIcon);
       container.append(element('h3', '', item.name));
-      container.append(element('div', 'item-meta', root.MechItems.slots[item.slot].name + ' · 物品等级 ' + (item.level || 1)));
+      const size = root.MechItems.itemSize(item);
+      container.append(element('div', 'item-meta', root.MechItems.slots[item.slot].name + ' · 等级 ' + (item.level || 1) + ' · ' + size.w + '×' + size.h + ' / ' + root.MechItems.itemVolume(item) + ' 格'));
       const affixList = element('div', 'item-affixes');
       const entries = Object.entries(item.affixes || {});
       if (!entries.length) affixList.append(element('p', '', '无额外词缀'));
@@ -154,14 +279,15 @@
     }
 
     equip(id) {
-      const index = this.app.profile.inventory.findIndex(function (item) { return item.id === id; });
+      const index = this.items().findIndex(function (item) { return item.id === id; });
       if (index < 0) return;
-      const item = this.app.profile.inventory[index];
-      this.app.profile.inventory.splice(index, 1);
+      const item = this.items()[index];
+      this.items().splice(index, 1);
       const previous = this.app.profile.equipped[item.slot];
-      if (previous) this.app.profile.inventory.push(previous);
+      if (previous) this.items().push(previous);
       this.app.profile.equipped[item.slot] = item;
       this.tab = root.MechItems.slots[item.slot].kind;
+      this.compact();
       this.app.saveProfile(); this.app.renderLoadout(); this.render();
       this.app.toast('已装备 ' + item.name);
     }
@@ -169,34 +295,35 @@
     unequip(slot) {
       const item = this.app.profile.equipped[slot];
       if (!item) return;
-      if (this.app.profile.inventory.length >= this.app.profile.inventoryCapacity) { this.app.toast('背包已满', true); return; }
-      this.app.profile.equipped[slot] = null; this.app.profile.inventory.push(item);
+      this.app.profile.equipped[slot] = null;
+      if (this.canAdd(item)) this.items().push(item);
+      else { this.overflow().push(item); this.app.toast('无连续空位，已放入溢出存储', true); }
+      this.compact();
       this.app.saveProfile(); this.app.renderLoadout(); this.render();
     }
 
     sell(id) {
-      const index = this.app.profile.inventory.findIndex(function (item) { return item.id === id; });
+      const index = this.items().findIndex(function (item) { return item.id === id; });
       if (index < 0) return;
-      const item = this.app.profile.inventory[index];
+      const item = this.items()[index];
       const value = Math.round(item.value * .35);
-      this.app.profile.inventory.splice(index, 1); this.app.profile.credits += value;
+      this.items().splice(index, 1); this.app.profile.credits += value;
+      this.compact();
       this.selectedId = null; this.app.renderProfile(); this.render(); this.app.toast('出售 ' + item.name + '，获得 ' + value);
     }
 
     sort() {
-      this.app.profile.inventory.sort(function (a, b) {
-        const rarityDifference = root.MechItems.rarities[b.rarity].score - root.MechItems.rarities[a.rarity].score;
-        return rarityDifference || a.slot.localeCompare(b.slot) || a.name.localeCompare(b.name);
-      });
+      this.compact();
       this.app.saveProfile(); this.render();
     }
 
     sellCommons() {
-      const commons = this.app.profile.inventory.filter(function (item) { return item.rarity === 'common'; });
+      const commons = this.items().filter(function (item) { return item.rarity === 'common'; });
       if (!commons.length) { this.app.toast('背包中没有普通物品'); return; }
       const value = commons.reduce(function (sum, item) { return sum + Math.round(item.value * .35); }, 0);
-      this.app.profile.inventory = this.app.profile.inventory.filter(function (item) { return item.rarity !== 'common'; });
+      this.setItems(this.items().filter(function (item) { return item.rarity !== 'common'; }));
       this.app.profile.credits += value; this.selectedId = null;
+      this.compact();
       this.app.renderProfile(); this.render(); this.app.toast('出售 ' + commons.length + ' 件普通物品，获得 ' + value);
     }
 

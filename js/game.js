@@ -9,6 +9,11 @@
     return JSON.parse(JSON.stringify(Data.defaults));
   }
 
+  function hasStoredProfile() {
+    try { return !!localStorage.getItem(STORAGE_KEY); }
+    catch (error) { return false; }
+  }
+
   function loadProfile() {
     const profile = cloneDefaults();
     try {
@@ -40,8 +45,9 @@
 
   function cacheUi() {
     const ids = [
-      'credits', 'net-dot', 'net-label', 'workspace-nav', 'nav-hangar', 'nav-inventory', 'nav-editor',
-      'inventory-screen', 'editor-screen', 'hangar', 'region-name', 'seed-input', 'reroll-button',
+      'credits', 'cheat-button', 'audio-button', 'music-volume', 'sfx-volume', 'net-dot', 'net-label', 'workspace-nav', 'nav-hangar', 'nav-campaign', 'nav-inventory', 'nav-editor',
+      'inventory-screen', 'editor-screen', 'campaign-screen', 'next-campaign', 'start-screen', 'start-continue', 'start-new', 'start-help',
+      'start-confirm', 'start-cancel-new', 'start-confirm-new', 'save-summary', 'hangar', 'region-name', 'seed-input', 'reroll-button',
       'map-preview', 'player-count', 'player-list', 'chat-log', 'chat-form', 'chat-input',
       'callsign-label', 'mech-title', 'mech-subtitle', 'hangar-mode-label', 'unit-stats',
       'weapon-slots', 'weapon-options', 'mod-options', 'raid-count', 'success-count', 'best-run',
@@ -118,7 +124,7 @@
     renderer: new root.MechRenderer(document.getElementById('game'), document.getElementById('minimap')),
     input: { keys: new Set(), pressed: new Set(), mouse: { x: innerWidth / 2, y: innerHeight / 2, down: false } },
     screen: 'hangar', activeTab: 'mech', selectedSlot: 0,
-    raid: null, localId: null, lobby: [], helpOpen: false,
+    raid: null, localId: null, lobby: [], helpOpen: false, raidInventoryOpen: false,
     lastFrame: performance.now(), networkClock: 0, damageLevel: 0,
     color: '#82e6d8',
 
@@ -128,7 +134,20 @@
       this.network = new HangarNetwork(this);
       this.inventoryUI = new root.MechInventoryUI(this);
       this.editorUI = new root.MechEditorUI(this);
+      this.raidBagUI = new root.MechRaidBagUI(this);
+      this.campaignUI = new root.MechCampaignUI(this);
+      this.audio = new root.MechAudio(this);
+      this.hasSave = hasStoredProfile();
+      const skipIntro = sessionStorage.getItem('iron-extraction-skip-intro') === '1';
+      if (skipIntro) sessionStorage.removeItem('iron-extraction-skip-intro');
+      this.screen = skipIntro ? 'hangar' : 'start';
+      this.ui.startScreen.classList.toggle('hidden', skipIntro);
+      this.ui.startContinue.textContent = this.hasSave ? '继续游戏 →' : '开始游戏 →';
+      this.ui.saveSummary.textContent = this.hasSave ? '驾驶员 ' + this.profile.callsign + ' · 等级 ' + this.profile.character.level + ' · 出击 ' + this.profile.raids + ' 次 · 信用点 ' + Math.round(this.profile.credits).toLocaleString() : '新驾驶员档案已准备 · 初始信用点 ' + this.profile.credits.toLocaleString();
       this.bindEvents();
+      this.ui.musicVolume.value = Math.round(this.profile.audio.music * 100);
+      this.ui.sfxVolume.value = Math.round(this.profile.audio.sfx * 100);
+      this.audio.updateButton();
       this.ui.seedInput.value = this.makeSeed();
       this.renderMapBrief();
       this.renderProfile();
@@ -152,8 +171,24 @@
 
     bindEvents() {
       this.ui.navHangar.addEventListener('click', function () { this.showWorkspace('hangar'); }.bind(this));
+      this.ui.navCampaign.addEventListener('click', function () { this.showWorkspace('campaign'); }.bind(this));
       this.ui.navInventory.addEventListener('click', function () { this.showWorkspace('inventory'); }.bind(this));
       this.ui.navEditor.addEventListener('click', function () { this.showWorkspace('editor'); }.bind(this));
+      this.ui.audioButton.addEventListener('click', this.audio.toggleMute.bind(this.audio));
+      this.ui.musicVolume.addEventListener('input', function () { this.audio.setVolume('music', Number(this.ui.musicVolume.value) / 100); }.bind(this));
+      this.ui.sfxVolume.addEventListener('input', function () { this.audio.setVolume('sfx', Number(this.ui.sfxVolume.value) / 100); }.bind(this));
+      document.addEventListener('click', function (event) {
+        if (event.target.closest && event.target.closest('button')) this.audio.play('ui');
+      }.bind(this));
+      this.ui.startContinue.addEventListener('click', this.hideStartScreen.bind(this));
+      this.ui.startNew.addEventListener('click', function () { this.ui.startConfirm.classList.remove('hidden'); }.bind(this));
+      this.ui.startCancelNew.addEventListener('click', function () { this.ui.startConfirm.classList.add('hidden'); }.bind(this));
+      this.ui.startConfirmNew.addEventListener('click', function () {
+        this.profile = root.MechItems.normalizeProfile(cloneDefaults());
+        this.saveProfile(); sessionStorage.setItem('iron-extraction-skip-intro', '1');
+        location.reload();
+      }.bind(this));
+      this.ui.startHelp.addEventListener('click', this.toggleHelp.bind(this));
       window.addEventListener('resize', function () {
         this.renderer.resize();
         if (this.raid) this.raid.updateCamera();
@@ -163,6 +198,10 @@
           if (event.code === 'Escape') event.target.blur();
           return;
         }
+        if (event.code === 'KeyB' && this.screen === 'raid' && !event.repeat) {
+          this.raidBagUI.toggle(); event.preventDefault(); return;
+        }
+        if (event.code === 'Escape' && this.raidInventoryOpen) { this.raidBagUI.hide(); return; }
         if (event.code === 'KeyH' && !event.repeat) {
           this.toggleHelp(); event.preventDefault(); return;
         }
@@ -176,7 +215,7 @@
       window.addEventListener('blur', function () { this.input.keys.clear(); this.input.mouse.down = false; }.bind(this));
       window.addEventListener('mousemove', function (event) { this.input.mouse.x = event.clientX; this.input.mouse.y = event.clientY; }.bind(this));
       window.addEventListener('mousedown', function (event) {
-        if (event.button === 0 && this.screen === 'raid' && !this.helpOpen && event.target === this.renderer.canvas) this.input.mouse.down = true;
+        if (event.button === 0 && this.screen === 'raid' && !this.helpOpen && !this.raidInventoryOpen && event.target === this.renderer.canvas) this.input.mouse.down = true;
       }.bind(this));
       window.addEventListener('mouseup', function (event) { if (event.button === 0) this.input.mouse.down = false; }.bind(this));
       this.renderer.canvas.addEventListener('contextmenu', function (event) { event.preventDefault(); });
@@ -194,6 +233,12 @@
         if (!this.network.send({ type: 'deploy', seed })) this.startRaid(seed);
       }.bind(this));
       this.ui.returnButton.addEventListener('click', this.returnToHangar.bind(this));
+      this.ui.nextCampaign.addEventListener('click', this.startNextCampaign.bind(this));
+      this.ui.cheatButton.addEventListener('click', function () {
+        this.profile.cheatMode = !this.profile.cheatMode;
+        this.renderProfile(); this.renderLoadout(); this.editorUI.renderMechPreview();
+        this.toast(this.profile.cheatMode ? '作弊模式已开启：无限信用点' : '作弊模式已关闭');
+      }.bind(this));
       this.ui.helpButton.addEventListener('click', this.toggleHelp.bind(this));
       this.ui.closeHelp.addEventListener('click', this.toggleHelp.bind(this));
       this.ui.helpModal.addEventListener('click', function (event) { if (event.target === this.ui.helpModal) this.toggleHelp(); }.bind(this));
@@ -206,15 +251,25 @@
       }.bind(this));
     },
 
+    hideStartScreen() {
+      this.audio.start();
+      this.ui.startScreen.classList.add('hidden');
+      this.ui.startConfirm.classList.add('hidden');
+      this.showWorkspace('hangar');
+    },
+
     showWorkspace(view) {
       if (this.screen === 'raid' || this.screen === 'debrief') return;
       this.screen = view;
       this.ui.hangar.classList.toggle('hidden', view !== 'hangar');
       this.ui.inventoryScreen.classList.toggle('hidden', view !== 'inventory');
       this.ui.editorScreen.classList.toggle('hidden', view !== 'editor');
+      this.ui.campaignScreen.classList.toggle('hidden', view !== 'campaign');
       this.ui.navHangar.classList.toggle('active', view === 'hangar');
+      this.ui.navCampaign.classList.toggle('active', view === 'campaign');
       this.ui.navInventory.classList.toggle('active', view === 'inventory');
       this.ui.navEditor.classList.toggle('active', view === 'editor');
+      if (view === 'campaign') this.campaignUI.render();
       if (view === 'inventory') this.inventoryUI.render();
       if (view === 'editor') this.editorUI.show(this.editorUI.tab);
       if (view === 'hangar') { this.renderProfile(); this.renderLoadout(); }
@@ -222,7 +277,9 @@
 
     renderProfile() {
       const p = this.profile;
-      this.ui.credits.textContent = Math.round(p.credits).toLocaleString();
+      this.ui.credits.textContent = p.cheatMode ? '∞' : Math.round(p.credits).toLocaleString();
+      this.ui.cheatButton.textContent = p.cheatMode ? '作弊 开' : '作弊 关';
+      this.ui.cheatButton.classList.toggle('active', p.cheatMode);
       this.ui.callsignLabel.textContent = p.callsign;
       this.ui.raidCount.textContent = p.raids || 0;
       this.ui.successCount.textContent = p.successfulRaids || 0;
@@ -255,7 +312,7 @@
         ['转向速率', systems.turnRate + '°/s'], ['结构耐久', stats.mechHp],
         ['实际速度', systems.speed], ['散热效率', Math.round(systems.cooling * 100) + '%']
       ] : [
-        ['单兵耐久', stats.infHp], ['机动速度', Math.round(stats.infSpeed)], ['行动背包', '12 件']
+        ['单兵耐久', stats.infHp], ['机动速度', Math.round(stats.infSpeed)], ['行动背包', '48 格']
       ];
       this.ui.unitStats.innerHTML = '';
       statData.forEach(function (entry) {
@@ -318,12 +375,13 @@
 
     selectWeapon(weapon, slotKey) {
       if (this.profile.unlocked.indexOf(weapon.id) < 0) {
-        if (this.profile.credits < weapon.price) { this.toast('信用点不足，需要 ' + weapon.price.toLocaleString(), true); return; }
-        this.profile.credits -= weapon.price;
+        if (!this.profile.cheatMode && this.profile.credits < weapon.price) { this.toast('信用点不足，需要 ' + weapon.price.toLocaleString(), true); return; }
+        if (!this.profile.cheatMode) this.profile.credits -= weapon.price;
         this.profile.unlocked.push(weapon.id);
         this.toast('已解锁 ' + weapon.name);
       }
       this.profile.loadout[slotKey] = weapon.id;
+      this.audio.play('equip');
       this.renderLoadout(); this.renderProfile();
       this.network.send({ type: 'loadout', loadout: this.profile.loadout });
     },
@@ -385,11 +443,59 @@
       this.ui.chatLog.scrollTop = this.ui.chatLog.scrollHeight;
     },
 
+    startCampaignStage(campaign, stageIndex, ignoreUnlock) {
+      const stage = campaign.stages[stageIndex];
+      if (!stage) return;
+      if (!ignoreUnlock && !root.MechCampaignData.unlocked(this.profile, campaign, stageIndex) ) {
+        this.toast('请先完成前一章', true); return;
+      }
+      const customMap = stage.mapId ? this.profile.customMaps.find(function (map) { return map.id === stage.mapId; }) : null;
+      this.startRaid(stage.mapId || stage.mapSeed, customMap);
+      this.raid.campaign = {
+        id: campaign.id, index: stageIndex, title: stage.title,
+        requirements: stage.requirements, rewardCredits: stage.rewardCredits, rewardGear: stage.rewardGear
+      };
+      this.feed('<b>' + stage.title + '</b> ' + stage.briefing);
+      this.raid.updateHud();
+    },
+
+    completeCampaignStage(raid) {
+      if (!raid.campaign) return false;
+      const campaign = root.MechCampaignData.all(this.profile).find(function (entry) { return entry.id === raid.campaign.id; });
+      if (!campaign) return false;
+      const stage = campaign.stages[raid.campaign.index];
+      const firstCompletion = root.MechCampaignData.completeStage(this.profile, campaign, raid.campaign.index);
+      if (firstCompletion) {
+        this.audio.play('campaign');
+        this.profile.credits += stage.rewardCredits;
+        for (let i = 0; i < stage.rewardGear; i += 1) {
+          const item = root.MechItems.generateItem(campaign.id + ':' + raid.campaign.index + ':' + Date.now() + ':' + i, this.profile.character.level, 2);
+          item.bag = raid.bagType(); raid.gear.push(item);
+        }
+      }
+      this.lastCompletion = { campaign, index: raid.campaign.index, hasNext: raid.campaign.index + 1 < campaign.stages.length };
+      this.ui.nextCampaign.classList.remove('hidden');
+      this.ui.nextCampaign.textContent = this.lastCompletion.hasNext ? '下一章 →' : '返回战役列表 →';
+      return firstCompletion;
+    },
+
+    startNextCampaign() {
+      if (!this.lastCompletion) return;
+      if (this.lastCompletion.hasNext) this.startCampaignStage(this.lastCompletion.campaign, this.lastCompletion.index + 1);
+      else {
+        this.raid = null; this.ui.debrief.classList.add('hidden'); this.ui.workspaceNav.classList.remove('hidden');
+        this.screen = 'campaign'; this.showWorkspace('campaign');
+      }
+    },
+
     startRaid(seed, customMap) {
       this.helpOpen = false; this.ui.helpModal.classList.add('hidden');
       this.profile.raids = (Number(this.profile.raids) || 0) + 1;
       this.renderProfile();
       this.raid = new root.MechRaid(this, String(seed), customMap || null);
+      this.raidBagUI.hide();
+      this.ui.nextCampaign.classList.add('hidden');
+      this.audio.play('deploy');
       this.screen = 'raid';
       this.ui.hangar.classList.add('hidden'); this.ui.inventoryScreen.classList.add('hidden'); this.ui.editorScreen.classList.add('hidden');
       this.ui.workspaceNav.classList.add('hidden'); this.ui.debrief.classList.add('hidden'); this.ui.missionHud.classList.remove('hidden');
@@ -400,18 +506,22 @@
     },
 
     endRaid(raid, success, reason) {
+      this.raidBagUI.hide();
       this.screen = 'debrief'; this.input.mouse.down = false; this.input.keys.clear();
       this.profile.totalKills = (Number(this.profile.totalKills) || 0) + raid.kills;
       let recovered = { recovered: [], overflowValue: 0 };
       if (success) {
+        this.completeCampaignStage(raid);
         recovered = root.MechItems.recoverGear(this.profile, raid.gear);
         this.profile.credits += raid.carryValue;
         this.profile.successfulRaids = (Number(this.profile.successfulRaids) || 0) + 1;
         this.profile.bestRun = Math.max(Number(this.profile.bestRun) || 0, raid.carryValue);
-      }
+      } else this.ui.nextCampaign.classList.add('hidden');
       const xpGain = raid.xp + (success ? 100 : 0);
       const progression = root.MechItems.addExperience(this.profile, xpGain);
       raid.recovered = recovered; raid.progression = progression;
+      this.audio.play(success ? 'extract' : 'fail');
+      if (progression.levels > 0) this.audio.play('level');
       this.renderProfile();
       this.ui.missionHud.classList.add('hidden'); this.ui.debrief.classList.remove('hidden');
       this.ui.debrief.querySelector('.debrief-card').classList.toggle('failed', !success);
@@ -433,7 +543,7 @@
       raid.gear.forEach(function (item) {
         const line = document.createElement('p'); const name = document.createElement('span');
         const icon = root.MechAssets.equipment(item.slot, item.name); icon.classList.add('debrief-art');
-        name.textContent = '装备 · ' + item.name; name.style.color = item.color;
+        name.textContent = (item.bag === 'mech' ? '机甲背包' : '单兵背包') + ' · ' + item.name; name.style.color = item.color;
         const value = document.createElement('b'); value.textContent = success ? (recovered.recovered.indexOf(item) >= 0 ? '已入库' : '已出售') : '已遗失';
         line.append(icon, name, value); this.ui.debriefLoot.appendChild(line);
       }, this);
@@ -491,9 +601,9 @@
       const dt = Math.min(.05, Math.max(0, (now - this.lastFrame) / 1000));
       this.lastFrame = now;
       if (this.screen === 'raid' && this.raid) {
-        if (!this.helpOpen) this.raid.update(dt);
+        if (!this.helpOpen && !this.raidInventoryOpen) this.raid.update(dt);
         if (this.raid) this.renderer.drawMission(this.raid, this.lobby.filter(function (p) { return !p.local; }), now / 1000);
-      } else if (['hangar', 'inventory', 'editor'].indexOf(this.screen) >= 0) {
+      } else if (['start', 'hangar', 'inventory', 'editor', 'campaign'].indexOf(this.screen) >= 0) {
         this.renderer.drawHangar(this.profile, this.activeTab, this.lobby, now / 1000);
       } else if (this.raid) {
         this.renderer.drawMission(this.raid, this.lobby.filter(function (p) { return !p.local; }), now / 1000);

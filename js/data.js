@@ -22,6 +22,36 @@
       damage: 10, rate: 0.065, mag: 60, reload: 1.9, speed: 1800, spread: 0.014,
       heat: 2.8, pellets: 1, color: '#ef7dff', description: '高射速能量武器，持续压制能力极强。'
     },
+    titanFist: {
+      id: 'titanFist', kind: 'mech', name: 'Titan Fist·泰坦之拳', tag: '原作 / 近战', price: 2000,
+      damage: 95, rate: 0.5, mag: 16, reload: 1.2, speed: 700, spread: 0.3,
+      heat: 5, pellets: 3, range: 105, color: '#c5f5df', description: '裂隙行者战斗机甲的近战打击，短距扇形冲击。'
+    },
+    taurusCannon: {
+      id: 'taurusCannon', kind: 'mech', name: 'Taurus Cannon·金牛炮', tag: '原作 / 直射', price: 2200,
+      damage: 70, rate: 0.65, mag: 10, reload: 1.8, speed: 1050, spread: 0.012,
+      heat: 10, pellets: 1, color: '#ffd09a', description: '裂隙行者加农机甲的强力直射火炮。'
+    },
+    artemisArtillery: {
+      id: 'artemisArtillery', kind: 'mech', name: 'Artemis Artillery·月神炮', tag: '原作 / 间接炮击', price: 3000,
+      damage: 80, rate: 1, mag: 5, reload: 2.8, speed: 340, spread: 0.015,
+      heat: 20, pellets: 1, blast: 95, lob: true, color: '#ffb16d', description: '裂隙行者火炮机甲的远程间接炮击武器。'
+    },
+    burstBeam: {
+      id: 'burstBeam', kind: 'mech', name: 'Burst Beam·爆裂光束', tag: '原作 / 穿透衰减', price: 2800,
+      damage: 40, rate: 0.4, mag: 12, reload: 2.2, speed: 1700, spread: 0.006,
+      heat: 11, pellets: 1, pierce: 4, damageFalloff: 0.12, color: '#8cf5ff', description: '天穹守卫激光机甲的穿透光束，命中后续目标时伤害递减。'
+    },
+    rammingEngines: {
+      id: 'rammingEngines', kind: 'mech', name: 'Ramming Engines·冲撞引擎', tag: '原作 / 冲撞自伤', price: 2400,
+      damage: 90, rate: 0.75, mag: 10, reload: 2, speed: 800, spread: 0.25,
+      heat: 6, pellets: 3, range: 130, selfDamage: 8, color: '#ffab7a', description: '天穹守卫冲锋机甲的高速冲撞，造成伤害同时损伤自身。'
+    },
+    aegisShield: {
+      id: 'aegisShield', kind: 'mech', name: 'Aegis Shield·防卫护盾', tag: '原作 / 护盾减伤', price: 2600,
+      damage: 12, rate: 1.2, mag: 4, reload: 3, speed: 900, spread: 0.02,
+      heat: 10, pellets: 1, shield: 3, color: '#a5b8f3', description: '天穹守卫防卫机甲的护盾投射器，发射后三秒内降低所受伤害。'
+    },
     flak: {
       id: 'flak', kind: 'mech', name: '风暴·破片炮', tag: '散射 / 近距', price: 1600,
       damage: 9, rate: 0.55, mag: 12, reload: 2.1, speed: 760, spread: 0.19,

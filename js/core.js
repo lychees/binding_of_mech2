@@ -284,6 +284,11 @@
       stats.mechArmor += frame.armor || 0; stats.critChance += frame.crit || 0;
       stats.dash *= frame.dash || 1; stats.spread *= frame.spread || 1; stats.blast *= frame.blast || 1;
     }
+    const tuning = profile.mech && profile.mech.tuning ? profile.mech.tuning : {};
+    stats.mechHp *= 1 + (tuning.frame || 0) * .04 + (tuning.armor || 0) * .05;
+    stats.mechSpeed *= 1 + (tuning.servos || 0) * .04;
+    stats.cooling *= 1 + (tuning.cooling || 0) * .08;
+    stats.heatGain *= 1 - (tuning.cooling || 0) * .04;
     stats.mechHp = Math.max(100, Math.round(stats.mechHp));
     stats.infHp = Math.max(50, Math.round(stats.infHp));
     stats.mechArmor = clamp(stats.mechArmor, 0, .65);
@@ -302,7 +307,10 @@
       railgun: { power: 270, weight: 2.5 }, laser: { power: 225, weight: 1.5 },
       flak: { power: 130, weight: 1.3 }, plasma: { power: 280, weight: 2.2 },
       arc: { power: 300, weight: 1.8 }, mortar: { power: 240, weight: 3.2 },
-      minigun: { power: 190, weight: 2 }, blade: { power: 80, weight: .7 }
+      minigun: { power: 190, weight: 2 }, blade: { power: 80, weight: .7 },
+      titanFist: { power: 85, weight: .8 }, taurusCannon: { power: 180, weight: 2 },
+      artemisArtillery: { power: 260, weight: 3 }, burstBeam: { power: 250, weight: 1.8 },
+      rammingEngines: { power: 140, weight: 1.2 }, aegisShield: { power: 190, weight: 1.4 }
     };
     const modSystem = {
       composite: { power: 0, weight: 1.4 }, actuator: { power: 55, weight: .4 },
@@ -332,7 +340,9 @@
       weightUsed += slotWeight[slot] * (1 + rarity.score * .12);
       if (slot === 'mechReactor') { output += 90 + rarity.score * 45; capacity += .4 + rarity.score * .2; }
     });
-    output = Math.max(100, output); capacity = Math.max(1, capacity);
+    const tuning = profile.mech && profile.mech.tuning ? profile.mech.tuning : {};
+    output = Math.max(100, output * (1 + (tuning.reactor || 0) * .08));
+    capacity = Math.max(1, capacity * (1 + (tuning.frame || 0) * .08));
     const powerRatio = powerUsed / output;
     const weightRatio = weightUsed / capacity;
     const powerPenalty = clamp(1 - Math.max(0, powerRatio - 1) * .75, .5, 1);
@@ -341,15 +351,20 @@
     Object.keys(partShare).forEach(function (slot) {
       const item = equipped[slot]; const affixes = item && item.affixes ? item.affixes : {};
       const durability = Math.round(stats.mechHp * partShare[slot] + (Number(affixes.partDurability) || 0) + (Number(affixes.mechHp) || 0) * .25);
-      const armor = Math.round((partArmor[slot] + (frame.armor || 0) * 150 + (Number(affixes.partArmor) || 0) + (Number(affixes.mechArmor) || 0) * 200) * 10) / 10;
+      const armor = Math.round((partArmor[slot] + (frame.armor || 0) * 150 + (Number(affixes.partArmor) || 0) + (Number(affixes.mechArmor) || 0) * 200) * (1 + (tuning.armor || 0) * .04) * 10) / 10;
       parts[slot] = { id: slot, name: items.slots[slot].name, hp: durability, maxHp: durability, armor, broken: false };
+    });
+    ['primaryWeapon', 'secondaryWeapon'].forEach(function (slot, index) {
+      const weaponId = index === 0 ? profile.loadout.mechPrimary : profile.loadout.mechSecondary;
+      const durability = Math.max(25, Math.round(stats.mechHp * .07));
+      parts[slot] = { id: slot, name: (index === 0 ? '主武器·' : '副武器·') + root.MechData.weapons[weaponId].name, hp: durability, maxHp: durability, armor: 8, broken: false };
     });
     return {
       powerOutput: Math.round(output), powerUsed: Math.round(powerUsed), powerFree: Math.round(output - powerUsed), powerRatio,
       weightCapacity: Math.round(capacity * 10) / 10, weightUsed: Math.round(weightUsed * 10) / 10,
       weightFree: Math.round((capacity - weightUsed) * 10) / 10, weightRatio,
       speed: Math.round(stats.mechSpeed * powerPenalty * weightPenalty),
-      turnRate: Math.round(frame.turn * weightPenalty * (.7 + powerPenalty * .3)),
+      turnRate: Math.round(frame.turn * (1 + (tuning.servos || 0) * .05) * weightPenalty * (.7 + powerPenalty * .3)),
       cooling: stats.cooling * powerPenalty, heatGain: stats.heatGain * (1 + Math.max(0, powerRatio - 1) * .8),
       overloaded: weightRatio > 1, powerShortage: powerRatio > 1, parts
     };

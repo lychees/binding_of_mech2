@@ -93,12 +93,26 @@
     thor: { name: '托尔', role: '重甲 / 近距散射', model: 'thor', remake: true, hp: 1.45, speed: .82, damage: 1.12, armor: .14, spread: 1.22, scale: 1.16, power: 1580, capacity: 32, weight: 14.2, draw: 880, turn: 95, description: '近距散发导弹重甲平台，远程散布较大。' },
     redFlame: { name: '赤焰', role: '火焰 / 广域爆发', model: 'redFlame', remake: true, hp: .78, speed: 1.22, damage: 1.24, blast: 1.4, heatGain: 1.15, scale: 1, power: 1180, capacity: 20, weight: 8.4, draw: 720, turn: 165, description: '高机动火焰机体，爆炸范围大但耐久较低。' },
     landen: { name: '兰登', role: '光束 / 重火力', model: 'landen', remake: true, hp: 1.2, speed: .76, damage: 1.3, armor: .08, spread: .85, scale: 1.12, power: 1520, capacity: 29, weight: 13.8, draw: 940, turn: 80, description: '双光束重炮平台，攻防出色但移动缓慢。' },
-    odin: { name: '奥丁', role: '离子 / 高能机动', model: 'odin', remake: true, hp: 1.1, speed: 1.2, damage: 1.1, armor: .05, cooling: 1.2, dash: .85, scale: 1.04, power: 1350, capacity: 24, weight: 9.6, draw: 680, turn: 165, description: '双离子炮与高效能源系统，攻防机动均衡。' }
+    odin: { name: '奥丁', role: '离子 / 高能机动', model: 'odin', remake: true, hp: 1.1, speed: 1.2, damage: 1.1, armor: .05, cooling: 1.2, dash: .85, scale: 1.04, power: 1350, capacity: 24, weight: 9.6, draw: 680, turn: 165, description: '双离子炮与高效能源系统，攻防机动均衡。' },
+    itbCombat: { name: '战斗机甲 / Combat Mech', role: '裂隙行者 / 近战', model: 'assault', series: 'itb', hp: 1.08, speed: 1.1, damage: 1.18, scale: 1, power: 1050, capacity: 20, weight: 8.4, draw: 620, turn: 150, description: '适配 Titan Fist 的多用途近战机体。' },
+    itbCannon: { name: '加农机甲 / Cannon Mech', role: '裂隙行者 / 直射', model: 'longbow', series: 'itb', hp: 1, speed: 1, damage: 1.16, spread: .85, scale: 1.03, power: 1200, capacity: 23, weight: 9.8, draw: 710, turn: 120, description: '适配 Taurus Cannon 的中远程直射机体。' },
+    itbArtillery: { name: '火炮机甲 / Artillery Mech', role: '裂隙行者 / 远程炮击', model: 'artillery', series: 'itb', hp: .95, speed: .88, damage: 1.22, blast: 1.25, scale: 1.1, power: 1450, capacity: 28, weight: 12, draw: 860, turn: 95, description: '适配 Artemis Artillery 的远程范围炮击机体。' },
+    itbLaser: { name: '激光机甲 / Laser Mech', role: '天穹守卫 / 穿透光束', model: 'spectre', series: 'itb', hp: .86, speed: 1.06, damage: 1.15, spread: .7, cooling: 1.15, scale: .95, power: 1350, capacity: 22, weight: 9.2, draw: 800, turn: 145, description: '适配 Burst Beam 的直线穿透火力机体。' },
+    itbCharge: { name: '冲锋机甲 / Charge Mech', role: '天穹守卫 / 高速冲撞', model: 'ronin', series: 'itb', hp: 1, speed: 1.25, damage: 1.15, dash: .7, scale: 1.02, power: 1150, capacity: 20, weight: 8.6, draw: 690, turn: 175, description: '适配 Ramming Engines 的高速近战冲撞机体。' },
+    itbDefense: { name: '防卫机甲 / Defense Mech', role: '天穹守卫 / 护盾防御', model: 'aegis', series: 'itb', hp: 1.38, speed: .88, damage: .94, armor: .12, scale: 1.15, power: 1600, capacity: 32, weight: 14.5, draw: 850, turn: 90, description: '适配护盾投射器的重甲防御机体。' }
   };
 
   const units = {
     raider: { id: 'raider', name: '掠夺者', model: 'raider', hp: 90, speed: 118, damage: 9, range: 365, fireRate: .57, color: '#b56958', scale: 1.05, xp: 20 },
     drone: { id: 'drone', name: '猎杀无人机', model: 'drone', hp: 145, speed: 105, damage: 14, range: 460, fireRate: .88, color: '#b56d58', scale: 1, xp: 35 }
+  };
+
+  const tuning = {
+    reactor: { name: '反应堆增压', effect: '每级 +8% 出力', baseCost: 600 },
+    servos: { name: '运动伺服', effect: '每级 +4% 速度 / +5% 转向', baseCost: 550 },
+    armor: { name: '部件强化', effect: '每级 +5% 耐久 / +4% 部件护甲', baseCost: 650 },
+    cooling: { name: '冷却回路', effect: '每级 +8% 散热 / -4% 热量', baseCost: 500 },
+    frame: { name: '承重框架', effect: '每级 +8% 负重上限 / +4% 耐久', baseCost: 700 }
   };
 
   function newId(prefix) {
@@ -107,7 +121,12 @@
 
   function normalizeProfile(profile) {
     profile.inventory = Array.isArray(profile.inventory) ? profile.inventory.filter(function (item) { return item && slots[item.slot]; }).slice(0, 60) : [];
-    profile.inventoryCapacity = 36;
+    profile.inventoryCapacity = 48;
+    profile.inventoryWidth = 8; profile.inventoryHeight = 6;
+    profile.inventoryOverflow = Array.isArray(profile.inventoryOverflow) ? profile.inventoryOverflow : [];
+    profile.mechInventory = Array.isArray(profile.mechInventory) ? profile.mechInventory.filter(function (item) { return item && slots[item.slot]; }).slice(0, 80) : [];
+    profile.mechInventoryCapacity = 80; profile.mechInventoryWidth = 10; profile.mechInventoryHeight = 8;
+    profile.mechInventoryOverflow = Array.isArray(profile.mechInventoryOverflow) ? profile.mechInventoryOverflow : [];
     profile.equipped = profile.equipped && typeof profile.equipped === 'object' ? profile.equipped : {};
     Object.keys(slots).forEach(function (slot) {
       const item = profile.equipped[slot];
@@ -121,10 +140,24 @@
     Object.keys(profile.character.attributes).forEach(function (key) {
       profile.character.attributes[key] = Math.max(0, Math.floor(Number(profile.character.attributes[key]) || 0));
     });
+    profile.pilot = root.MechPilots && root.MechPilots[profile.pilot] ? profile.pilot : 'ralph';
     profile.mech = Object.assign({ chassis: 'assault', paint: '#698a82', name: '灰犀' }, profile.mech || {});
     if (!chassis[profile.mech.chassis]) profile.mech.chassis = 'assault';
     profile.mech.name = String(profile.mech.name || '灰犀').slice(0, 16);
     profile.mech.paint = /^#[0-9a-f]{6}$/i.test(profile.mech.paint) ? profile.mech.paint : '#698a82';
+    profile.mech.tuning = Object.assign({ reactor: 0, servos: 0, armor: 0, cooling: 0, frame: 0 }, profile.mech.tuning || {});
+    Object.keys(profile.mech.tuning).forEach(function (key) {
+      profile.mech.tuning[key] = Math.max(0, Math.min(5, Math.floor(Number(profile.mech.tuning[key]) || 0)));
+    });
+    profile.cheatMode = profile.cheatMode === true;
+    profile.audio = Object.assign({ muted: false, music: .45, sfx: .7 }, profile.audio || {});
+    profile.audio.muted = profile.audio.muted === true;
+    profile.audio.music = Math.max(0, Math.min(1, Number(profile.audio.music) || 0));
+    profile.audio.sfx = Math.max(0, Math.min(1, Number(profile.audio.sfx) || 0));
+    profile.campaign = Object.assign({ completed: {}, custom: [] }, profile.campaign || {});
+    if (!profile.campaign.completed || typeof profile.campaign.completed !== 'object') profile.campaign.completed = {};
+    profile.campaign.completed = Object.assign({}, profile.campaign.completed);
+    profile.campaign.custom = Array.isArray(profile.campaign.custom) ? profile.campaign.custom : [];
     profile.customUnits = Array.isArray(profile.customUnits) ? profile.customUnits : [];
     profile.customItems = Array.isArray(profile.customItems) ? profile.customItems : [];
     profile.customMaps = Array.isArray(profile.customMaps) ? profile.customMaps : [];
@@ -137,6 +170,13 @@
       });
       profile.gearInitialized = true;
     }
+    if (!profile.mechGearInitialized) {
+      const item = generateItem('starter-mech-armor', 1, 0, 'ceramic_plate');
+      item.rarity = 'common'; item.name = '标准机甲装甲';
+      item.affixes = Object.assign({}, bases.find(function (base) { return base.id === item.baseId; }).stats);
+      profile.mechInventory.push(item); profile.mechGearInitialized = true;
+    }
+    compactInventory(profile); compactMechInventory(profile);
     return profile;
   }
 
@@ -183,6 +223,90 @@
     };
   }
 
+  const itemShapes = {
+    infHelmet: { w: 2, h: 2 }, infArmor: { w: 2, h: 3 }, infGloves: { w: 1, h: 1 },
+    infBoots: { w: 2, h: 2 }, infCharm: { w: 1, h: 2 }, mechHead: { w: 2, h: 2 },
+    mechTorso: { w: 3, h: 3 }, mechArms: { w: 2, h: 3 }, mechLegs: { w: 2, h: 3 },
+    mechReactor: { w: 2, h: 2 }, mechArmor: { w: 3, h: 2 }
+  };
+
+  function itemSize(item) {
+    const shape = itemShapes[item.slot] || { w: 1, h: 1 };
+    return {
+      w: Math.max(1, Math.min(3, Math.floor(Number(item.w) || shape.w))),
+      h: Math.max(1, Math.min(3, Math.floor(Number(item.h) || shape.h)))
+    };
+  }
+
+  function itemVolume(item) {
+    const size = itemSize(item); return size.w * size.h;
+  }
+
+  function inventoryUsed(items) {
+    return (items || []).reduce(function (sum, item) { return sum + itemVolume(item); }, 0);
+  }
+
+  function canPlaceAt(items, item, x, y, width, height) {
+    const size = itemSize(item);
+    if (x < 0 || y < 0 || x + size.w > width || y + size.h > height) return false;
+    return !(items || []).some(function (other) {
+      if (other.id === item.id) return false;
+      const otherSize = itemSize(other);
+      return x < other.x + otherSize.w && x + size.w > other.x && y < other.y + otherSize.h && y + size.h > other.y;
+    });
+  }
+
+  function packItems(items, width, height) {
+    const grid = Array.from({ length: height }, function () { return Array(width).fill(false); });
+    const packed = []; const overflow = [];
+    const ordered = (items || []).slice().sort(function (a, b) {
+      return itemVolume(b) - itemVolume(a) || (rarities[b.rarity] || rarities.common).score - (rarities[a.rarity] || rarities.common).score;
+    });
+    ordered.forEach(function (item) {
+      const size = itemSize(item); let placed = false;
+      for (let y = 0; y <= height - size.h && !placed; y += 1) {
+        for (let x = 0; x <= width - size.w && !placed; x += 1) {
+          let free = true;
+          for (let dy = 0; dy < size.h && free; dy += 1) for (let dx = 0; dx < size.w; dx += 1) {
+            if (grid[y + dy][x + dx]) { free = false; break; }
+          }
+          if (!free) continue;
+          for (let dy = 0; dy < size.h; dy += 1) for (let dx = 0; dx < size.w; dx += 1) grid[y + dy][x + dx] = true;
+          item.x = x; item.y = y; item.w = size.w; item.h = size.h;
+          packed.push(item); placed = true;
+        }
+      }
+      if (!placed) overflow.push(item);
+    });
+    return { packed, overflow, used: inventoryUsed(packed) };
+  }
+
+  function compactInventory(profile) {
+    profile.inventoryWidth = 8; profile.inventoryHeight = 6; profile.inventoryCapacity = 48;
+    const all = (profile.inventory || []).concat(profile.inventoryOverflow || []);
+    const result = packItems(all, 8, 6);
+    profile.inventory = result.packed; profile.inventoryOverflow = result.overflow;
+    return result;
+  }
+
+  function canAddItem(profile, item) {
+    const result = packItems((profile.inventory || []).concat([item]), profile.inventoryWidth || 8, profile.inventoryHeight || 6);
+    return result.overflow.length === 0;
+  }
+
+  function compactMechInventory(profile) {
+    profile.mechInventoryWidth = 10; profile.mechInventoryHeight = 8; profile.mechInventoryCapacity = 80;
+    const all = (profile.mechInventory || []).concat(profile.mechInventoryOverflow || []);
+    const result = packItems(all, 10, 8);
+    profile.mechInventory = result.packed; profile.mechInventoryOverflow = result.overflow;
+    return result;
+  }
+
+  function canAddMechItem(profile, item) {
+    const result = packItems((profile.mechInventory || []).concat([item]), profile.mechInventoryWidth || 10, profile.mechInventoryHeight || 8);
+    return result.overflow.length === 0;
+  }
+
   function affixLabel(key, value) {
     const definition = affixes[key];
     if (!definition) return key + ' ' + value;
@@ -206,11 +330,14 @@
   function recoverGear(profile, gear) {
     const recovered = [];
     let overflowValue = 0;
+    compactInventory(profile); compactMechInventory(profile);
     (gear || []).forEach(function (item) {
-      if (profile.inventory.length < profile.inventoryCapacity) recovered.push(item);
-      else overflowValue += Math.round(item.value * .35);
+      if (item.bag === 'mech' && canAddMechItem(profile, item)) {
+        profile.mechInventory.push(item); compactMechInventory(profile); recovered.push(item);
+      } else if (item.bag !== 'mech' && canAddItem(profile, item)) {
+        profile.inventory.push(item); compactInventory(profile); recovered.push(item);
+      } else overflowValue += Math.round(item.value * .35);
     });
-    profile.inventory.push.apply(profile.inventory, recovered);
     profile.credits += overflowValue;
     return { recovered, overflowValue };
   }
@@ -273,8 +400,10 @@
   }
 
   root.MechItems = {
-    slots, rarities, affixes, bases, chassis, units,
+    slots, rarities, affixes, bases, chassis, units, tuning,
     normalizeProfile, generateItem, affixLabel, addExperience, recoverGear,
-    unitDefinition, emptyMap, normalizeMap, newId
+    unitDefinition, emptyMap, normalizeMap, newId,
+    itemSize, itemVolume, inventoryUsed, packItems, compactInventory, canAddItem, canPlaceAt,
+    compactMechInventory, canAddMechItem
   };
 })(typeof window !== 'undefined' ? window : globalThis);

@@ -32,7 +32,8 @@
       this.player = {
         x: this.map.spawn.x, y: this.map.spawn.y, angle: 0,
         mode: 'mech', mechHp: this.stats.mechHp, infHp: this.stats.infHp,
-        parts: this.systems.parts, heat: 0, overheated: false, dashCooldown: 0, dashTime: 0, flash: 0
+        parts: this.systems.parts, heat: 0, overheated: false, dashCooldown: 0, dashTime: 0, flash: 0,
+        shield: 0, freeRepairs: app.profile.pilot === 'isaac' ? 1 : 0
       };
       const loadout = app.profile.loadout;
       this.weapons = {
@@ -60,11 +61,14 @@
       this.extractProgress = 0;
       this.carried = [];
       this.gear = [];
-      this.capacity = 12;
+      this.capacities = { pilot: app.profile.inventoryCapacity, mech: app.profile.mechInventoryCapacity };
       this.carryValue = 0;
       this.salvage = 0;
       this.kills = 0;
       this.xp = 0;
+      this.campaign = null;
+      this.cratesOpened = 0;
+      this.gearFound = 0;
       this.shots = 0;
       this.searchTarget = null;
       this.over = false;
@@ -72,6 +76,7 @@
       this.updateCamera();
       this.app.clearFeed();
       this.buildPartHud();
+      if (this.player.freeRepairs > 0) this.app.feed('艾萨克：按 <b>V</b> 使用一次免费紧急修复');
       this.app.feed('已进入 <b>' + String(this.map.name).replace(/[<>&]/g, '') + '</b>，撤离信标已标记');
       this.app.feed('按 <b>F</b> 离机，建筑内部只能徒步进入');
       this.app.feed('爆炸可摧毁掩体和墙体，开辟单兵通道');
@@ -107,8 +112,38 @@
       return this.player.mode === 'mech' ? this.stats.mechHp : this.stats.infHp;
     }
 
-    carriedCount() {
-      return this.carried.length + this.gear.length;
+    bagType(mode) {
+      const value = mode || this.player.mode;
+      return value === 'mech' ? 'mech' : 'pilot';
+    }
+
+    carriedVolume(bag) {
+      const type = bag || 'pilot';
+      const materials = this.carried.filter(function (item) { return (item.bag || 'pilot') === type; }).length;
+      const gearVolume = this.gear.filter(function (item) { return (item.bag || 'pilot') === type; }).reduce(function (sum, item) { return sum + root.MechItems.itemVolume(item); }, 0);
+      const stored = type === 'mech' ? this.app.profile.mechInventory : this.app.profile.inventory;
+      return root.MechItems.inventoryUsed(stored) + materials + gearVolume;
+    }
+
+    canCarry(item, bag) {
+      const type = bag || this.bagType();
+      return this.carriedVolume(type) + root.MechItems.itemVolume(item) <= this.capacities[type];
+    }
+
+    campaignComplete() {
+      if (!this.campaign) return true;
+      return this.campaign.requirements.every(function (requirement) {
+        const values = { crates: this.cratesOpened, kills: this.kills, destroyed: this.destroyedCount, gear: this.gearFound };
+        return (values[requirement.type] || 0) >= requirement.target;
+      }, this);
+    }
+
+    campaignProgressText() {
+      if (!this.campaign) return '';
+      return this.campaign.requirements.map(function (requirement) {
+        const values = { crates: this.cratesOpened, kills: this.kills, destroyed: this.destroyedCount, gear: this.gearFound };
+        return root.MechCampaignData.describe(requirement).replace(' ' + requirement.target, '') + ' ' + Math.min(values[requirement.type] || 0, requirement.target) + '/' + requirement.target;
+      }, this).join(' · ');
     }
 
     update(dt) {
@@ -124,6 +159,7 @@
       player.flash = Math.max(0, player.flash - dt);
       player.dashCooldown = Math.max(0, player.dashCooldown - dt);
       player.dashTime = Math.max(0, player.dashTime - dt);
+      player.shield = Math.max(0, (player.shield || 0) - dt);
       const targetAngle = Math.atan2(input.mouse.y + this.camera.y - player.y, input.mouse.x + this.camera.x - player.x);
       if (player.mode === 'mech') {
         const difference = Math.atan2(Math.sin(targetAngle - player.angle), Math.cos(targetAngle - player.angle));
@@ -138,6 +174,7 @@
       if (input.pressed.has('Digit2')) this.switchWeapon(1);
       if (input.pressed.has('KeyR')) this.reload();
       if (input.pressed.has('KeyF')) this.dismount();
+      if (input.pressed.has('KeyV')) this.activateRepair();
 
       let moveX = (input.keys.has('KeyD') ? 1 : 0) - (input.keys.has('KeyA') ? 1 : 0);
       let moveY = (input.keys.has('KeyS') ? 1 : 0) - (input.keys.has('KeyW') ? 1 : 0);
@@ -149,7 +186,7 @@
         this.burst(player.x, player.y, '#9bd7c5', 7, 80);
       }
       let speed = player.mode === 'mech' ? this.stats.mechSpeed : this.stats.infSpeed;
-      if (player.mode === 'mech' && player.parts.mechLegs.broken) speed *= .55;
+      if (player.mode === 'mech' && player.parts.mechLegs.broken) speed *= this.app.profile.pilot === 'camila' ? .775 : .55;
       if (player.mode === 'mech' && player.parts.mechReactor.broken) speed *= .75;
       if (player.dashTime > 0) speed *= 3.4;
       Core.moveEntity(this.map, player, moveX * speed * dt, moveY * speed * dt, player.mode === 'mech' ? 34 : 9, player.mode === 'infantry');
@@ -182,7 +219,7 @@
       this.updateParticles(dt);
 
       const extractionDistance = Core.distance(player, this.map.extraction);
-      if (extractionDistance < this.map.extraction.radius) {
+      if (extractionDistance < this.map.extraction.radius && this.campaignComplete()) {
         this.extractProgress += dt;
         if (this.extractProgress >= 3) {
           this.finish(true, '物资已安全送回格纳库');
@@ -213,10 +250,33 @@
       state.reloadLeft = state.reloadTotal;
     }
 
+    activateRepair() {
+      const player = this.player;
+      if (player.freeRepairs <= 0) return;
+      player.freeRepairs -= 1;
+      if (player.mode === 'mech') player.mechHp = Math.min(this.stats.mechHp, player.mechHp + this.stats.mechHp * .35);
+      else player.infHp = Math.min(this.stats.infHp, player.infHp + this.stats.infHp * .35);
+      Object.values(player.parts).forEach(function (part) {
+        part.hp = Math.max(part.hp, part.maxHp * .65);
+        part.broken = false;
+      });
+      player.heat = 0; player.overheated = false;
+      this.app.audio.play('repair');
+      this.app.feed('回合重置：<b>免费紧急修复</b>，部件已恢复');
+    }
+
     firePlayer() {
       const player = this.player;
       const state = this.currentWeapon();
       const weapon = state.weapon;
+      const weaponPart = this.active.mech === 0 ? 'primaryWeapon' : 'secondaryWeapon';
+      if (player.mode === 'mech' && player.parts[weaponPart].broken) {
+        if (!this.brokenNotice || this.elapsed - this.brokenNotice > 3) {
+          this.app.feed('<b>' + player.parts[weaponPart].name + '</b> 已损毁，按 1/2 切换武器或离机');
+          this.brokenNotice = this.elapsed;
+        }
+        return;
+      }
       if (state.cooldown > 0 || state.reloadLeft > 0 || (player.mode === 'mech' && player.overheated)) return;
       if (state.ammo <= 0) { this.reload(); return; }
       const burstCount = weapon.burst ? Math.min(weapon.burst, state.ammo) : 1;
@@ -235,6 +295,14 @@
       } else {
         for (let i = 0; i < weapon.pellets; i += 1) this.spawnPlayerBullet(weapon);
       }
+      this.app.audio.play('shot', weapon.id);
+      if (weapon.shield) {
+        player.shield = Math.max(player.shield || 0, weapon.shield);
+        this.app.audio.play('shield');
+        this.app.feed('防卫护盾已展开，持续 ' + weapon.shield + ' 秒');
+      }
+      if (weapon.selfDamage) this.damagePlayer(weapon.selfDamage, 'mechArmor');
+      if (this.app.profile.pilot === 'chen') player.dashCooldown = Math.max(0, player.dashCooldown - .25);
       if (state.ammo <= 0) this.reload();
     }
 
@@ -253,7 +321,7 @@
         blast: weapon.blast ? weapon.blast * this.stats.blast : 0,
         color: critical ? '#fff2a8' : weapon.color, radius: critical ? 4 : 3, critical,
         chain: weapon.chain || 0, chainRange: weapon.chainRange || 0,
-        pierce: weapon.pierce || 0, hitIds: [], lob: !!weapon.lob,
+        pierce: weapon.pierce || 0, damageFalloff: weapon.damageFalloff || 0, hitIds: [], lob: !!weapon.lob,
         z: weapon.lob ? 0 : undefined, vz: weapon.lob ? 260 : undefined, gravity: weapon.lob ? 520 : undefined
       });
       this.burst(player.x + Math.cos(player.angle) * 35, player.y + Math.sin(player.angle) * 35, weapon.color, 3, 45);
@@ -272,6 +340,14 @@
       }
       player.infHp = Math.min(this.stats.infHp, player.infHp + this.stats.swapHeal);
       player.heat = 0; player.overheated = false;
+      this.app.audio.play('dismount');
+      if (this.app.profile.pilot === 'gana') {
+        this.enemies.forEach(function (enemy) {
+          if (!enemy.dead && Core.distance(enemy, player) < 110) this.damageEnemy(enemy, 35);
+        }, this);
+        this.burst(player.x, player.y, '#9ff1d9', 24, 180);
+        this.app.feed('部署冲击：附近敌人受到伤害');
+      }
       this.app.feed('已离机：<b>单兵模式</b>，靠近机甲按 E 登机');
     }
 
@@ -285,8 +361,17 @@
       player.x = this.parkedMech.x; player.y = this.parkedMech.y; player.angle = this.parkedMech.angle;
       player.mechHp = Math.min(this.stats.mechHp, this.parkedMech.hp + this.stats.swapHeal);
       player.parts = this.parkedMech.parts;
+      if (this.app.profile.pilot === 'harold') {
+        player.mechHp = Math.min(this.stats.mechHp, player.mechHp + this.stats.mechHp * .2);
+        Object.values(player.parts).forEach(function (part) {
+          part.hp = Math.min(part.maxHp, part.hp + part.maxHp * .3);
+          if (part.hp > 0) part.broken = false;
+        });
+        this.app.feed('维修专家：机体与部件已修复');
+      }
       player.mode = 'mech'; this.parkedMech = null; player.heat = 0;
       this.searchTarget = null;
+      this.app.audio.play('board');
       this.app.feed('神经链路连接：<b>机甲模式</b>');
     }
 
@@ -319,7 +404,7 @@
         this.map.crates.forEach(function (crate) {
           if (crate !== nearest && !crate.opened) crate.progress = Math.max(0, crate.progress - dt * 2);
         });
-        if (nearest && this.app.input.keys.has('KeyE') && !this.nearParkedMech() && this.carriedCount() < this.capacity) {
+        if (nearest && this.app.input.keys.has('KeyE') && !this.nearParkedMech() && this.carriedVolume(this.bagType()) < this.capacities[this.bagType()]) {
           nearest.progress += dt / 0.9;
           if (nearest.progress >= 1) this.openCrate(nearest);
         } else if (nearest) {
@@ -329,18 +414,27 @@
     }
 
     openCrate(crate) {
-      if (crate.opened || this.carriedCount() >= this.capacity) return;
-      crate.opened = true; crate.progress = 1;
+      if (crate.opened || this.carriedVolume(this.bagType()) >= this.capacities[this.bagType()]) return;
+      crate.opened = true; crate.progress = 1; this.cratesOpened += 1;
       const item = Core.rollLoot(this.map.seed + ':' + crate.id + ':' + this.app.profile.raids, this.stats.lootLuck);
+      item.bag = this.bagType();
       this.carried.push(item); this.carryValue += item.value;
+      this.app.audio.play('loot');
       this.app.feed('获得 <b>' + item.name + '</b>　+' + item.value + ' 信用点', true);
       this.burst(crate.x, crate.y, item.color, 12, 95);
-      if (this.carriedCount() < this.capacity && Math.random() < .62) {
+      if (Math.random() < .62) {
         const gear = root.MechItems.generateItem(this.map.seed + ':gear:' + crate.id + ':' + this.app.profile.raids, this.app.profile.character.level, this.stats.lootLuck);
-        this.gear.push(gear);
-        this.app.feed('发现 ' + root.MechItems.rarities[gear.rarity].name + '装备 <b>' + String(gear.name).replace(/[<>&]/g, '') + '</b>', true);
-        this.app.toast(root.MechItems.rarities[gear.rarity].name + ' · ' + gear.name);
-        this.burst(crate.x, crate.y, gear.color, 18, 125);
+        gear.bag = item.bag;
+        if (this.canCarry(gear, item.bag)) {
+          this.gear.push(gear); this.gearFound += 1;
+          this.app.audio.play('gear');
+          this.app.feed('发现 ' + root.MechItems.rarities[gear.rarity].name + '装备 <b>' + String(gear.name).replace(/[<>&]/g, '') + '</b> · ' + root.MechItems.itemVolume(gear) + ' 格', true);
+          this.app.toast(root.MechItems.rarities[gear.rarity].name + ' · ' + gear.name);
+          this.burst(crate.x, crate.y, gear.color, 18, 125);
+        } else {
+          this.app.feed('背包空间不足，无法携带 ' + String(gear.name).replace(/[<>&]/g, ''));
+          this.app.toast(item.name + '  +' + item.value);
+        }
       } else this.app.toast(item.name + '  +' + item.value);
     }
 
@@ -407,7 +501,11 @@
               const enemy = this.enemies[i];
               if (!enemy.dead && bullet.hitIds.indexOf(enemy.id) < 0 && Core.distance(bullet, enemy) < enemy.radius + bullet.radius) {
                 this.impact(bullet, enemy);
-                if (bullet.pierce > 0) { bullet.pierce -= 1; bullet.hitIds.push(enemy.id); continue; }
+                if (bullet.pierce > 0) {
+                  bullet.pierce -= 1; bullet.hitIds.push(enemy.id);
+                  if (bullet.damageFalloff) bullet.damage *= 1 - bullet.damageFalloff;
+                  continue;
+                }
                 impacted = true; break;
               }
             }
@@ -427,6 +525,7 @@
       if (directTarget && !bullet.blast) this.damageEnemy(directTarget, bullet.damage);
       if (directTarget && bullet.chain) this.chainLightning(directTarget, bullet);
       if (bullet.blast) {
+        this.app.audio.play('explosion');
         this.enemies.forEach(function (enemy) {
           if (enemy.dead) return;
           const dist = Core.distance(bullet, enemy);
@@ -458,6 +557,7 @@
       target.hp = Math.max(0, target.hp - amount);
       if (target.hp > 0) return;
       target.destroyed = true;
+      this.app.audio.play('destroy');
       this.destroyedCount += 1;
       const x = target.x + target.w / 2; const y = target.y + target.h / 2;
       const salvage = { rock: 35, scrap: 25, barrier: 15, barrel: 30, wall: 8 }[target.terrainType] || 10;
@@ -492,15 +592,19 @@
       if (enemy.dead) return;
       enemy.hp -= amount; enemy.alert = true;
       if (enemy.hp <= 0) {
-        enemy.dead = true; this.kills += 1; this.xp += enemy.xp || 20;
+        enemy.dead = true; this.kills += 1; this.xp += (enemy.xp || 20) + (this.app.profile.pilot === 'ralph' ? 2 : 0);
+        this.app.audio.play('enemyDown');
         const salvage = enemy.model === 'drone' ? 55 : 30;
         this.salvage += salvage; this.carryValue += salvage;
         this.burst(enemy.x, enemy.y, enemy.model === 'drone' ? '#e69766' : '#b5c1a5', 15, 130);
-        if (this.carriedCount() < this.capacity && Math.random() < (enemy.model === 'drone' ? .2 : .13)) {
+        if (Math.random() < (enemy.model === 'drone' ? .2 : .13)) {
           const gear = root.MechItems.generateItem(this.map.seed + ':drop:' + enemy.id + ':' + this.kills, this.app.profile.character.level, this.stats.lootLuck);
-          this.gear.push(gear);
-          this.app.feed('敌人掉落 <b>' + String(gear.name).replace(/[<>&]/g, '') + '</b>', true);
-          this.burst(enemy.x, enemy.y, gear.color, 16, 110);
+          gear.bag = this.bagType();
+          if (this.canCarry(gear, gear.bag)) {
+            this.gear.push(gear); this.gearFound += 1;
+            this.app.feed('敌人掉落 <b>' + String(gear.name).replace(/[<>&]/g, '') + '</b> · ' + root.MechItems.itemVolume(gear) + ' 格', true);
+            this.burst(enemy.x, enemy.y, gear.color, 16, 110);
+          }
         }
         if (this.kills === 1 || this.kills % 4 === 0) this.app.feed('威胁清除 <b>' + this.kills + '</b>　回收合金 +' + salvage);
       }
@@ -518,6 +622,7 @@
         damage *= .78 * (1 - globalArmor) * (1 - partReduction);
       } else damage *= 1 - this.stats.infArmor;
       if (player.dashTime > 0) damage *= .45;
+      if (player.shield > 0) damage *= .55;
       if (player.mode === 'mech') {
         player.mechHp -= damage;
         hitPart.hp = Math.max(0, hitPart.hp - damage);
@@ -530,6 +635,7 @@
       } else player.infHp -= damage;
       player.flash = .6;
       this.app.damageFlash();
+      this.app.audio.play('hit');
       if (player.mode === 'mech' && (player.mechHp <= 0 || player.parts.mechTorso.broken)) this.emergencyEject();
       else if (player.mode === 'infantry' && player.infHp <= 0) this.finish(false, '驾驶员生命信号消失，携带物资遗失');
     }
@@ -585,7 +691,7 @@
       ui.ammoLabel.textContent = state.ammo + ' / ' + state.weapon.mag;
       ui.reloadLabel.textContent = state.reloadLeft > 0 ? '装填中 ' + state.reloadLeft.toFixed(1) + 's' : (player.overheated ? '武器过热 · 等待冷却' : 'R 装填 · 1/2 切换');
       ui.carryValue.textContent = this.carryValue.toLocaleString();
-      ui.carryItems.textContent = '背包 ' + this.carriedCount() + '/' + this.capacity + ' · 装备 ' + this.gear.length + (this.salvage ? ' · 合金 ' + this.salvage : '');
+      ui.carryItems.textContent = '单兵 ' + this.carriedVolume('pilot') + '/18 · 机甲 ' + this.carriedVolume('mech') + '/36' + (this.salvage ? ' · 合金 ' + this.salvage : '') + ' · B 背包';
       const seconds = Math.ceil(this.timeLeft);
       ui.missionTime.textContent = String(Math.floor(seconds / 60)).padStart(2, '0') + ':' + String(seconds % 60).padStart(2, '0');
       ui.missionTime.parentElement.classList.toggle('danger', seconds <= 60);
@@ -595,7 +701,13 @@
       if (this.extractProgress > 0) {
         ui.objectiveText.textContent = '撤离认证中 ' + Math.round(this.extractProgress / 3 * 100) + '%';
         ui.objectiveSub.textContent = '保持在绿色撤离区域内';
-      } else if (this.carriedCount() > 0) {
+      } else if (this.campaign && !this.campaignComplete()) {
+        ui.objectiveText.textContent = this.campaign.title;
+        ui.objectiveSub.textContent = this.campaignProgressText() + ' · 完成后方可撤离';
+      } else if (this.campaign) {
+        ui.objectiveText.textContent = '战役目标完成 · 前往绿色撤离信标';
+        ui.objectiveSub.textContent = this.campaignProgressText();
+      } else if (this.carriedVolume() > 0) {
         ui.objectiveText.textContent = '物资已获取 · 前往绿色撤离信标';
         ui.objectiveSub.textContent = '也可继续搜索，撤离后物资与装备才会入账';
       } else {
@@ -613,12 +725,14 @@
       let show = false; let progress = this.extractProgress / 3;
       if (this.extractProgress > 0) {
         show = true; title.textContent = '撤离认证中'; subtitle.textContent = '停留 3 秒，不要离开信号区域';
+      } else if (this.campaign && !this.campaignComplete() && Core.distance(this.player, this.map.extraction) < this.map.extraction.radius) {
+        show = true; title.textContent = '战役目标未完成'; subtitle.textContent = this.campaignProgressText(); progress = 0;
       } else if (this.player.mode === 'infantry' && this.nearParkedMech()) {
         show = true; title.textContent = '[ E ] 登上机甲'; subtitle.textContent = '恢复重型武装与装甲防护'; progress = 0;
       } else if (this.searchTarget) {
         show = true; progress = this.searchTarget.progress;
-        title.textContent = this.carriedCount() >= this.capacity ? '背包已满' : '[ E ] 按住搜索容器';
-        subtitle.textContent = this.carriedCount() >= this.capacity ? '携带现有物资前往撤离点' : '可能发现带词缀装备 · 搜索需要 0.9 秒';
+        title.textContent = this.carriedVolume(this.bagType()) >= this.capacities[this.bagType()] ? '背包已满' : '[ E ] 按住搜索容器';
+        subtitle.textContent = this.carriedVolume(this.bagType()) >= this.capacities[this.bagType()] ? '携带现有物资前往撤离点' : '可能发现带词缀装备 · 搜索需要 0.9 秒';
       } else if (this.player.mode === 'mech' && inside) {
         show = false;
       }

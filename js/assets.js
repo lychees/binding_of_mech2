@@ -29,6 +29,7 @@
   }
 
   function portrait(seed, name) {
+    if (root.MechPilots && root.MechPilots[seed]) return svgIcon('assets/pilots.svg#' + root.MechPilots[seed].asset, name || '驾驶员', 'pilot-art');
     const hash = root.MechCore ? root.MechCore.hashSeed(seed) : String(seed).length;
     return svgIcon('assets/pilots.svg#pilot-' + hash % 4, name || '驾驶员', 'pilot-art');
   }
